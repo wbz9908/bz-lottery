@@ -27,9 +27,11 @@ public class SaTokenAuthenticationFilter extends OncePerRequestFilter {
     protected void doFilterInternal(HttpServletRequest request,
                                     HttpServletResponse response,
                                     FilterChain filterChain) throws ServletException, IOException {
+        // 仅在 SecurityContext 为空时填充——如果 Keycloak 已认证则不覆盖，实现双认证退避
         if (SecurityContextHolder.getContext().getAuthentication() == null) {
             Object loginId = StpUtil.getLoginIdDefaultNull();
             if (loginId != null) {
+                // 将 SaToken 会话 ID 转换为 Spring Security Authentication，密码传 null（不在此处暴露）
                 userAccountService.findAuthenticatedUser(Long.parseLong(String.valueOf(loginId)))
                         .ifPresent(user -> {
                             UsernamePasswordAuthenticationToken authentication = new UsernamePasswordAuthenticationToken(

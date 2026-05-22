@@ -1,5 +1,6 @@
 package com.lottery.common.response;
 
+// 错误码体系：5位数字，前3位对应 HTTP 状态码，后2位为内部细分码
 public enum CommonErrorCode {
     SUCCESS("00000", "Success"),
     BAD_REQUEST("40000", "Request validation failed"),

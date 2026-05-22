@@ -20,6 +20,7 @@ public class DrawRecord {
     private String prizeLevel;
     private Integer prizeLevelSort;
     private BigDecimal hitProbability;
+    // drawStatus: 1=普通中奖（自动生效），2=高等级中奖（需人工审核）
     private Integer drawStatus;
     private String drawRemark;
     private String requestNo;

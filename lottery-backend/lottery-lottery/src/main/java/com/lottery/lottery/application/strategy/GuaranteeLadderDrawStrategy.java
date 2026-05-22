@@ -35,6 +35,7 @@ public class GuaranteeLadderDrawStrategy implements LotteryDrawStrategy {
         return new DrawStrategyResult(prize, getType(), targetTier, actualTier);
     }
 
+    // 按 SPECIAL > MID_TIER > LUCKY 降序检查，多阈值同时触发时取最高 tier
     private GuaranteeTier resolveTargetGuaranteeTier(DrawHistorySnapshot history) {
         if (isThresholdReached(history.specialMissCount(), GuaranteeTier.SPECIAL)) {
             return GuaranteeTier.SPECIAL;
@@ -48,10 +49,12 @@ public class GuaranteeLadderDrawStrategy implements LotteryDrawStrategy {
         return null;
     }
 
+    // 阈值减 1：threshold=N 表示每 N 次抽奖触发保底，即连续 N-1 次未命中后触发
     private boolean isThresholdReached(int missCount, GuaranteeTier tier) {
         return missCount >= tier.threshold() - 1;
     }
 
+    // 目标 tier 库存不足时逐级降级：SPECIAL→MID_TIER→LUCKY→PARTICIPATION
     private GuaranteeTier resolveActualGuaranteeTier(GuaranteeTier targetTier, List<Prize> availablePrizes) {
         return switch (targetTier) {
             case SPECIAL ->

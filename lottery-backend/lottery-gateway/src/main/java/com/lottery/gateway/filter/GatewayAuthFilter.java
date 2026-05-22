@@ -43,15 +43,18 @@ public class GatewayAuthFilter implements org.springframework.cloud.gateway.filt
         ServerHttpRequest request = exchange.getRequest();
         String path = request.getPath().value();
 
+        // 三层认证旁路模型：OPTIONS 预检 → 公开白名单路径 → 非受保护路径均直接放行
         if (HttpMethod.OPTIONS.equals(request.getMethod()) || isPublicPath(path) || !isProtectedPath(path)) {
             return chain.filter(exchange);
         }
 
+        // 双 token 源解析：优先取自定义 header（satoken），fallback 到标准 Authorization: Bearer
         String token = resolveToken(request);
         if (!StringUtils.hasText(token)) {
             return writeUnauthorized(exchange, "Login required before accessing lottery resources");
         }
 
+        // 远程校验：向 lottery-user 发起 token 校验请求，所有错误（网络/超时/4xx/5xx）统一转为 401
         return webClient.get()
                 .uri("http://lottery-user/api/user/auth/me")
                 .header(authProperties.getTokenName(), token)

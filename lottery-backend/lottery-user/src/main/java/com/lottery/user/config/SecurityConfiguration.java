@@ -31,6 +31,8 @@ import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 
+// 双认证架构：Spring Security 做凭证验证 + SaToken 做会话管理
+// Keycloak OAuth2 通过条件式 @Bean JwtDecoder 可选启用
 @Configuration
 @EnableWebSecurity
 @EnableMethodSecurity
@@ -74,6 +76,7 @@ public class SecurityConfiguration {
                 .formLogin(formLogin -> formLogin.disable())
                 .addFilterBefore(saTokenAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
 
+        // Keycloak 条件启用：仅当 app.security.keycloak.enabled=true 且 issuerUri 非空时生效
         if (keycloakSecurityProperties.isEnabled() && StringUtils.hasText(keycloakSecurityProperties.getIssuerUri())) {
             http.oauth2ResourceServer(resourceServer -> resourceServer.jwt(jwt -> jwt.jwtAuthenticationConverter(jwtAuthenticationConverter())));
         }
@@ -116,6 +119,7 @@ public class SecurityConfiguration {
         JwtDecoder jwtDecoder = JwtDecoders.fromIssuerLocation(keycloakSecurityProperties.getIssuerUri());
         OAuth2TokenValidator<Jwt> defaultValidator = JwtValidators.createDefaultWithIssuer(keycloakSecurityProperties.getIssuerUri());
         if (StringUtils.hasText(keycloakSecurityProperties.getClientId())) {
+            // JWT aud 声明可以是 String 或 List，需要同时处理两种格式
             OAuth2TokenValidator<Jwt> audienceValidator = new JwtClaimValidator<>(
                     "aud",
                     audience -> audience instanceof Iterable<?> iterable
@@ -124,6 +128,7 @@ public class SecurityConfiguration {
                               .anyMatch(keycloakSecurityProperties.getClientId()::equals)
                             : keycloakSecurityProperties.getClientId().equals(String.valueOf(audience))
             );
+            // JwtDecoders.fromIssuerLocation 返回 NimbusJwtDecoder 实例，非 public API 约定
             ((org.springframework.security.oauth2.jwt.NimbusJwtDecoder) jwtDecoder)
                     .setJwtValidator(new DelegatingOAuth2TokenValidator<>(defaultValidator, audienceValidator));
         } else {
@@ -133,6 +138,7 @@ public class SecurityConfiguration {
     }
 
     @SuppressWarnings("unchecked")
+    // 提取 Keycloak JWT 的 realm_access.roles 数组（格式：{"realm_access": {"roles": [...]}}）
     private Collection<String> extractRoles(Object realmAccessClaim) {
         if (realmAccessClaim instanceof Map<?, ?> realmAccess) {
             Object roles = realmAccess.get("roles");

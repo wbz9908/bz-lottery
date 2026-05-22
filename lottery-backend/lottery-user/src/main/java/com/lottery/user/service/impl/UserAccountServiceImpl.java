@@ -42,6 +42,7 @@ public class UserAccountServiceImpl implements UserAccountService {
     private final UserRoleRelMapper userRoleRelMapper;
     private final SysRoleMapper sysRoleMapper;
     private final SysMenuMapper sysMenuMapper;
+    // ObjectProvider 延迟解析：Keycloak-only 模式下 AuthenticationManager Bean 可能不存在
     private final ObjectProvider<AuthenticationManager> authenticationManagerProvider;
     private final PasswordEncoder passwordEncoder;
 
@@ -76,8 +77,10 @@ public class UserAccountServiceImpl implements UserAccountService {
         user.setCreatedAt(LocalDateTime.now());
         user.setUpdatedAt(LocalDateTime.now());
         userAccountMapper.insert(user);
+        // 所有本地注册用户默认获得 LOTTERY_USER 角色
         bindDefaultRole(user.getId(), "LOTTERY_USER");
 
+        // 注册后自动登录，直接返回 SaToken 会话
         return loginByUser(user);
     }
 
@@ -102,6 +105,7 @@ public class UserAccountServiceImpl implements UserAccountService {
             throw new BusinessException(CommonErrorCode.BAD_REQUEST.code(), "Keycloak token is missing subject");
         }
 
+        // 三级降级：preferred_username → email → "kc_{subject}"（subject 是 UUID，始终可用）
         String username = firstNonBlank(
                 jwt.getClaimAsString("preferred_username"),
                 jwt.getClaimAsString("email"),
@@ -114,6 +118,7 @@ public class UserAccountServiceImpl implements UserAccountService {
                 username
         );
 
+        // 双阶段查找：先按 Keycloak subject 匹配已关联账户，再按 email 匹配（关联本地注册账号）
         UserAccount user = userAccountMapper.selectOne(new LambdaQueryWrapper<UserAccount>()
                 .eq(UserAccount::getKeycloakSubject, subject)
                 .eq(UserAccount::getDeleted, false)
@@ -139,8 +144,10 @@ public class UserAccountServiceImpl implements UserAccountService {
             user.setCreatedAt(LocalDateTime.now());
             user.setUpdatedAt(LocalDateTime.now());
             userAccountMapper.insert(user);
+            // 新 Keycloak 用户同时获得基础角色
             bindDefaultRole(user.getId(), "LOTTERY_USER");
         } else {
+            // 已有用户每次登录时同步 Keycloak profile 到本地 DB
             user.setNickname(nickname);
             user.setEmail(email);
             user.setAuthSource("KEYCLOAK");
@@ -149,6 +156,7 @@ public class UserAccountServiceImpl implements UserAccountService {
             user.setUpdatedAt(LocalDateTime.now());
             userAccountMapper.updateById(user);
         }
+        // 所有 Keycloak 登录用户均标记 IDP_USER 身份
         bindDefaultRole(user.getId(), "IDP_USER");
 
         return loginByUser(user);
@@ -218,6 +226,7 @@ public class UserAccountServiceImpl implements UserAccountService {
         return userAccountMapper.selectCount(wrapper) > 0;
     }
 
+    // Spring Security 认证成功后调用 SaToken 创建会话——双认证系统的桥接点
     private AuthResponse loginByUser(UserAccount user) {
         StpUtil.login(user.getId());
         return new AuthResponse(
@@ -279,6 +288,7 @@ public class UserAccountServiceImpl implements UserAccountService {
         return StringUtils.hasText(mobile) ? mobile.trim() : null;
     }
 
+    // 脱敏：替换非字母数字下划线字符为 _，可能导致 "hello world" 和 "hello-world" 冲突
     private String generateAvailableUsername(String baseUsername) {
         String normalized = baseUsername.replaceAll("[^a-zA-Z0-9_]", "_");
         String candidate = normalized;

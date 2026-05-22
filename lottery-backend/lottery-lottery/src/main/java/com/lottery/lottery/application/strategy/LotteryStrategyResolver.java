@@ -16,6 +16,7 @@ public class LotteryStrategyResolver {
 
     private final LotterySystemConfigMapper lotterySystemConfigMapper;
     private final Map<DrawStrategyType, LotteryDrawStrategy> strategies;
+    // volatile 确保 admin 线程 reload() 后所有请求线程立即可见
     private volatile DrawStrategyType activeType = DrawStrategyType.PROBABILITY_ONLY;
 
     public LotteryStrategyResolver(
@@ -32,6 +33,7 @@ public class LotteryStrategyResolver {
         reload();
     }
 
+    // activeType 不在 map 中时（如策略 Bean 加载失败）静默降级为概率模式
     public LotteryDrawStrategy resolve() {
         return strategies.getOrDefault(activeType, strategies.get(DrawStrategyType.PROBABILITY_ONLY));
     }

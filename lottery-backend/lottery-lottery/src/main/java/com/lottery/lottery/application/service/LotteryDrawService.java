@@ -10,6 +10,8 @@ import com.lottery.lottery.domain.entity.DrawRecord;
 import com.lottery.lottery.domain.entity.Prize;
 import com.lottery.lottery.infrastructure.mapper.DrawRecordMapper;
 import com.lottery.lottery.infrastructure.mapper.PrizeMapper;
+import org.redisson.api.RLock;
+import org.redisson.api.RedissonClient;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -17,25 +19,32 @@ import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
 import java.util.UUID;
+import java.util.concurrent.TimeUnit;
 
 @Service
 public class LotteryDrawService {
 
     private static final DateTimeFormatter RECORD_NO_FORMATTER = DateTimeFormatter.ofPattern("yyyyMMddHHmmssSSS");
     private static final int MAX_GUARANTEE_HISTORY = 50;
+    private static final String DRAW_LOCK_KEY_PREFIX = "lottery:draw:lock:user:";
+    private static final long DRAW_LOCK_WAIT_SECONDS = 3;
+    private static final long DRAW_LOCK_LEASE_SECONDS = 10;
 
     private final PrizeMapper prizeMapper;
     private final DrawRecordMapper drawRecordMapper;
     private final LotteryStrategyResolver lotteryStrategyResolver;
+    private final RedissonClient redissonClient;
 
     public LotteryDrawService(
             PrizeMapper prizeMapper,
             DrawRecordMapper drawRecordMapper,
-            LotteryStrategyResolver lotteryStrategyResolver
+            LotteryStrategyResolver lotteryStrategyResolver,
+            RedissonClient redissonClient
     ) {
         this.prizeMapper = prizeMapper;
         this.drawRecordMapper = drawRecordMapper;
         this.lotteryStrategyResolver = lotteryStrategyResolver;
+        this.redissonClient = redissonClient;
     }
 
     public List<DrawRecordView> listRecords(Long userId, int limit) {
@@ -73,62 +82,79 @@ public class LotteryDrawService {
         }
 
         String requestNo = isBlank(request.requestNo()) ? generateRequestNo(request.userId()) : request.requestNo();
-        DrawRecord existingRecord = drawRecordMapper.selectOne(new LambdaQueryWrapper<DrawRecord>()
-                .eq(DrawRecord::getDeleted, false)
-                .eq(DrawRecord::getUserId, request.userId())
-                .eq(DrawRecord::getRequestNo, requestNo)
-                .last("limit 1"));
-        if (existingRecord != null) {
-            return toResponse(existingRecord);
+
+        RLock lock = redissonClient.getLock(DRAW_LOCK_KEY_PREFIX + request.userId());
+        try {
+            if (!lock.tryLock(DRAW_LOCK_WAIT_SECONDS, DRAW_LOCK_LEASE_SECONDS, TimeUnit.SECONDS)) {
+                throw new BusinessException("draw in progress, please try again later");
+            }
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            throw new BusinessException("draw interrupted, please try again later");
         }
 
-        List<Prize> availablePrizes = prizeMapper.selectList(new LambdaQueryWrapper<Prize>()
-                .eq(Prize::getDeleted, false)
-                .eq(Prize::getStatus, 1)
-                .gt(Prize::getAvailableStock, 0)
-                .orderByAsc(Prize::getSort)
-                .orderByAsc(Prize::getPrizeLevelSort)
-                .orderByAsc(Prize::getId));
+        try {
+            DrawRecord existingRecord = drawRecordMapper.selectOne(new LambdaQueryWrapper<DrawRecord>()
+                    .eq(DrawRecord::getDeleted, false)
+                    .eq(DrawRecord::getUserId, request.userId())
+                    .eq(DrawRecord::getRequestNo, requestNo)
+                    .last("limit 1"));
+            if (existingRecord != null) {
+                return toResponse(existingRecord);
+            }
 
-        if (availablePrizes.isEmpty()) {
-            throw new BusinessException("No available prizes for draw");
+            List<Prize> availablePrizes = prizeMapper.selectList(new LambdaQueryWrapper<Prize>()
+                    .eq(Prize::getDeleted, false)
+                    .eq(Prize::getStatus, 1)
+                    .gt(Prize::getAvailableStock, 0)
+                    .orderByAsc(Prize::getSort)
+                    .orderByAsc(Prize::getPrizeLevelSort)
+                    .orderByAsc(Prize::getId));
+
+            if (availablePrizes.isEmpty()) {
+                throw new BusinessException("No available prizes for draw");
+            }
+
+            List<DrawRecord> recentRecords = listRecentRecords(request.userId(), MAX_GUARANTEE_HISTORY);
+            DrawStrategyContext context = new DrawStrategyContext(
+                    request.userId(),
+                    availablePrizes,
+                    recentRecords,
+                    buildHistorySnapshot(recentRecords)
+            );
+            DrawStrategyResult selectionResult = lotteryStrategyResolver.resolve().selectPrize(context);
+            Prize selectedPrize = selectionResult.prize();
+
+            int updatedRows = prizeMapper.decreaseStock(selectedPrize.getId());
+            if (updatedRows == 0) {
+                throw new BusinessException("Prize stock changed, please try again");
+            }
+
+            DrawRecord drawRecord = new DrawRecord();
+            int drawStatus = isHighLevelPrize(selectedPrize) ? 2 : 1;
+            drawRecord.setRecordNo(generateRecordNo(request.userId()));
+            drawRecord.setUserId(request.userId());
+            drawRecord.setPrizeId(selectedPrize.getId());
+            drawRecord.setPrizeCode(selectedPrize.getPrizeCode());
+            drawRecord.setPrizeName(selectedPrize.getPrizeName());
+            drawRecord.setPrizeLevel(selectedPrize.getPrizeLevel());
+            drawRecord.setPrizeLevelSort(selectedPrize.getPrizeLevelSort());
+            drawRecord.setHitProbability(selectedPrize.getProbability());
+            drawRecord.setDrawStatus(drawStatus);
+            drawRecord.setDrawRemark(buildRemark(selectedPrize, selectionResult));
+            drawRecord.setRequestNo(requestNo);
+            drawRecord.setTraceId(UUID.randomUUID().toString().replace("-", ""));
+            drawRecord.setCreatedAt(LocalDateTime.now());
+            drawRecord.setUpdatedAt(LocalDateTime.now());
+            drawRecord.setDeleted(false);
+
+            drawRecordMapper.insert(drawRecord);
+            return toResponse(drawRecord);
+        } finally {
+            if (lock.isHeldByCurrentThread()) {
+                lock.unlock();
+            }
         }
-
-        List<DrawRecord> recentRecords = listRecentRecords(request.userId(), MAX_GUARANTEE_HISTORY);
-        DrawStrategyContext context = new DrawStrategyContext(
-                request.userId(),
-                availablePrizes,
-                recentRecords,
-                buildHistorySnapshot(recentRecords)
-        );
-        DrawStrategyResult selectionResult = lotteryStrategyResolver.resolve().selectPrize(context);
-        Prize selectedPrize = selectionResult.prize();
-
-        int updatedRows = prizeMapper.decreaseStock(selectedPrize.getId());
-        if (updatedRows == 0) {
-            throw new BusinessException("Prize stock changed, please try again");
-        }
-
-        DrawRecord drawRecord = new DrawRecord();
-        int drawStatus = isHighLevelPrize(selectedPrize) ? 2 : 1;
-        drawRecord.setRecordNo(generateRecordNo(request.userId()));
-        drawRecord.setUserId(request.userId());
-        drawRecord.setPrizeId(selectedPrize.getId());
-        drawRecord.setPrizeCode(selectedPrize.getPrizeCode());
-        drawRecord.setPrizeName(selectedPrize.getPrizeName());
-        drawRecord.setPrizeLevel(selectedPrize.getPrizeLevel());
-        drawRecord.setPrizeLevelSort(selectedPrize.getPrizeLevelSort());
-        drawRecord.setHitProbability(selectedPrize.getProbability());
-        drawRecord.setDrawStatus(drawStatus);
-        drawRecord.setDrawRemark(buildRemark(selectedPrize, selectionResult));
-        drawRecord.setRequestNo(requestNo);
-        drawRecord.setTraceId(UUID.randomUUID().toString().replace("-", ""));
-        drawRecord.setCreatedAt(LocalDateTime.now());
-        drawRecord.setUpdatedAt(LocalDateTime.now());
-        drawRecord.setDeleted(false);
-
-        drawRecordMapper.insert(drawRecord);
-        return toResponse(drawRecord);
     }
 
     private List<DrawRecord> listRecentRecords(Long userId, int limit) {
@@ -149,6 +175,7 @@ public class LotteryDrawService {
 
     private int countMissesUntilHit(List<DrawRecord> recentRecords, GuaranteeTier tier) {
         int missCount = 0;
+        // ceiling 与 GuaranteeLadderDrawStrategy.isThresholdReached 的 -1 耦合，确保两端阈值语义一致
         int ceiling = Math.max(tier.threshold() - 1, 0);
 
         for (DrawRecord record : recentRecords) {
@@ -203,6 +230,7 @@ public class LotteryDrawService {
         return baseRemark;
     }
 
+    // prizeLevelSort 1-2 为高等级奖品，需人工审核
     private boolean isHighLevelPrize(Prize selectedPrize) {
         return selectedPrize.getPrizeLevelSort() != null && selectedPrize.getPrizeLevelSort() <= 2;
     }

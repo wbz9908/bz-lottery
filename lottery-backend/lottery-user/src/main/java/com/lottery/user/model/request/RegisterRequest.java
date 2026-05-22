@@ -19,6 +19,7 @@ public record RegisterRequest(
         @NotBlank(message = "密码不能为空")
         @Size(min = 8, max = 64, message = "密码长度必须在 8 到 64 位之间")
         String password,
+        // mobile 为可选字段：空字符串通过校验（表示未填写），非空时需匹配中国大陆手机号格式
         @Pattern(regexp = "^$|^1\\d{10}$", message = "手机号格式不正确")
         String mobile
 ) {

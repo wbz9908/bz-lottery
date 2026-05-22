@@ -6,6 +6,7 @@ public class BusinessException extends RuntimeException {
 
     private final String code;
 
+    // 单参构造器隐式使用 BAD_REQUEST(40000) 作为默认错误码
     public BusinessException(String message) {
         this(CommonErrorCode.BAD_REQUEST.code(), message);
     }

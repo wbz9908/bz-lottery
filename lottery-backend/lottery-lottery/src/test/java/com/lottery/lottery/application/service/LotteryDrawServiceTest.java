@@ -9,19 +9,25 @@ import com.lottery.lottery.domain.entity.DrawRecord;
 import com.lottery.lottery.domain.entity.Prize;
 import com.lottery.lottery.infrastructure.mapper.DrawRecordMapper;
 import com.lottery.lottery.infrastructure.mapper.PrizeMapper;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.redisson.api.RLock;
+import org.redisson.api.RedissonClient;
 
 import java.math.BigDecimal;
 import java.util.List;
+import java.util.concurrent.TimeUnit;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
@@ -36,8 +42,20 @@ class LotteryDrawServiceTest {
     @Mock
     private LotteryStrategyResolver lotteryStrategyResolver;
 
+    @Mock
+    private RedissonClient redissonClient;
+
+    @Mock
+    private RLock rLock;
+
     @InjectMocks
     private LotteryDrawService lotteryDrawService;
+
+    @BeforeEach
+    void setUp() throws InterruptedException {
+        when(redissonClient.getLock(anyString())).thenReturn(rLock);
+        when(rLock.tryLock(anyLong(), anyLong(), any(TimeUnit.class))).thenReturn(true);
+    }
 
     @Test
     void shouldWriteGuaranteeDowngradeRemarkForHighLevelPrize() {

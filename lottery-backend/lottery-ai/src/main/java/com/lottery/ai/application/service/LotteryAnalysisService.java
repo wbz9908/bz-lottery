@@ -27,6 +27,7 @@ public class LotteryAnalysisService {
 
     private static final Logger log = LoggerFactory.getLogger(LotteryAnalysisService.class);
     private static final DateTimeFormatter DATE_TIME_FORMATTER = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
+    // prizeLevelSort <= 2 视为高等级奖品，用于统计高等级命中次数
     private static final int HIGH_TIER_THRESHOLD = 2;
 
     private final DrawRecordMapper drawRecordMapper;
@@ -52,6 +53,7 @@ public class LotteryAnalysisService {
         }
 
         LotteryUserAnalysisMetrics metrics = buildMetrics(request.userId(), records);
+        // 双路降级：GLM 未启用时直接返回规则引擎结果，GLM 调用失败时 catch BusinessException 降级
         LotteryUserAnalysisResponse fallbackResponse = buildFallbackResponse(request.userId(), request.focus(), metrics);
 
         if (!glmChatClient.isEnabled()) {
@@ -307,6 +309,7 @@ public class LotteryAnalysisService {
         );
     }
 
+    // GLM 可能返回空列表或数量不足，用规则引擎结果补齐到目标数量
     private List<String> ensureSize(List<String> values, List<String> fallback, int size) {
         List<String> source = (values == null || values.isEmpty()) ? fallback : values;
         if (source.size() >= size) {

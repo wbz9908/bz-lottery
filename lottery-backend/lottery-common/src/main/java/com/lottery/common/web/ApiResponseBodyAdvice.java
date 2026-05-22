@@ -43,6 +43,8 @@ public class ApiResponseBodyAdvice implements ResponseBodyAdvice<Object> {
         if (body instanceof ApiResponse<?>) {
             return body;
         }
+        // StringHttpMessageConverter workaround：controller 返回 String 时 converter 只能写 String，
+        // 无法将 ApiResponse wrapper 序列化为 JSON，需在此手动序列化后返回 JSON 字符串
         if (StringHttpMessageConverter.class.isAssignableFrom(selectedConverterType)) {
             try {
                 return objectMapper.writeValueAsString(ApiResponse.success(body));

@@ -18,6 +18,7 @@ public class PrizeQueryService {
     }
 
     public List<PrizeView> listAvailablePrizes() {
+        // status=1 表示"启用"状态（0=禁用）；三重排序确保奖品按展示优先级 → 等级 → 创建时间排列
         return prizeMapper.selectList(new LambdaQueryWrapper<Prize>()
                         .eq(Prize::getDeleted, false)
                         .eq(Prize::getStatus, 1)

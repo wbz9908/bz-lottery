@@ -66,6 +66,12 @@ dubbo:
 rocketmq:
   name-server: ${ROCKETMQ_NAME_SERVER:localhost:9876}
 
+redisson:
+  single-server-config:
+    address: redis://${REDIS_HOST:localhost}:${REDIS_PORT:6379}
+    connection-pool-size: 16
+    connection-minimum-idle-size: 4
+
 management:
   endpoints:
     web:

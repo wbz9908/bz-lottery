@@ -24,6 +24,8 @@ public class AuthenticatedUser implements UserDetails {
         return userAccount;
     }
 
+    // 硬编码 ROLE_USER：Spring Security 要求认证主体至少持有一个 GrantedAuthority，
+    // 此处的单一角色仅用于满足框架约定，实际 RBAC 权限由数据库角色-菜单关联决定
     @Override
     public Collection<? extends GrantedAuthority> getAuthorities() {
         return List.of(new SimpleGrantedAuthority("ROLE_USER"));

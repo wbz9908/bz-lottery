@@ -11,6 +11,7 @@ final class WeightedPrizeSelector {
     private WeightedPrizeSelector() {
     }
 
+    // BigDecimal→double 存在精度损失，对于极小概率大量奖品的场景可能引入偏差
     static Prize select(List<Prize> prizes) {
         BigDecimal totalProbability = prizes.stream()
                 .map(Prize::getProbability)
@@ -37,6 +38,7 @@ final class WeightedPrizeSelector {
             }
         }
 
+        // 浮点精度导致 randomValue 落在总概率和累积值之间的间隙时，兜底返回最后一个有效奖品
         return lastPrize;
     }
 }

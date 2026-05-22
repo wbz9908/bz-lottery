@@ -18,6 +18,7 @@ public class GatewayReactiveConfiguration {
 
     @Bean
     public CorsWebFilter corsWebFilter() {
+        // CORS 通配符 + 凭据：allowedOriginPatterns 配合 allowCredentials，规避 CORS spec"credentials+*"互斥限制
         CorsConfiguration config = new CorsConfiguration();
         config.addAllowedOriginPattern("*");
         config.addAllowedHeader(CorsConfiguration.ALL);
@@ -35,6 +36,7 @@ public class GatewayReactiveConfiguration {
         return new CorsWebFilter(source);
     }
 
+    // 三重 trace ID 传播：响应头（客户端可读）→ Reactor Context（响应式链内传播）→ MDC（日志线程绑定）
     @Bean
     public WebFilter traceWebFilter() {
         return (exchange, chain) -> {

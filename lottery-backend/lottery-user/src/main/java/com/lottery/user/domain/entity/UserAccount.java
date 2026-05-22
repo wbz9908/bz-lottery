@@ -18,7 +18,9 @@ public class UserAccount {
     private String password;
     private Boolean enabled;
     private String authSource;
+    // Keycloak 用户的唯一主体标识（sub claim），用于跨登录匹配已关联账户
     private String keycloakSubject;
+    // Keycloak 用户的 preferred_username，仅用于展示/审计，不作为匹配依据
     private String keycloakUsername;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
