@@ -26,32 +26,23 @@ async function logout() {
 
 <template>
   <div class="workspace-shell">
-    <button
-        v-if="navItems.length"
-        :aria-expanded="mobileNavOpen"
-        aria-controls="workspace-sidebar"
-        class="mobile-menu-btn"
-        type="button"
-        @click="mobileNavOpen = true"
-    >
-      菜单
-    </button>
-
-    <div v-if="mobileNavOpen" class="sidebar-backdrop" @click="mobileNavOpen = false"></div>
-
-    <aside id="workspace-sidebar" :class="{ open: mobileNavOpen }" class="workspace-sidebar">
-      <div>
-        <div class="sidebar-head">
-          <div>
-            <p class="eyebrow">权限控制台</p>
-            <h2>抽奖控制台</h2>
-          </div>
-          <button class="sidebar-close-btn" type="button" @click="mobileNavOpen = false">关闭</button>
-        </div>
-        <p class="sidebar-copy">导航会根据当前登录用户的角色和菜单权限实时展示。</p>
+    <header class="topnav">
+      <div class="topnav-brand">
+        <strong>抽奖控制台</strong>
       </div>
 
-      <nav class="workspace-nav">
+      <button
+          v-if="navItems.length"
+          class="topnav-toggle"
+          type="button"
+          @click="mobileNavOpen = !mobileNavOpen"
+      >
+        {{ mobileNavOpen ? '✕' : '☰' }}
+      </button>
+
+      <div v-if="mobileNavOpen" class="topnav-mobile-overlay open" @click="mobileNavOpen = false"></div>
+
+      <nav :class="{ open: mobileNavOpen }" class="topnav-links">
         <RouterLink
             v-for="item in navItems"
             :key="item.name"
@@ -60,18 +51,17 @@ async function logout() {
             class="nav-link"
         >
           <span>{{ item.meta.navLabel }}</span>
-          <small>{{ item.meta.roles.join(' / ') }}</small>
         </RouterLink>
       </nav>
 
-      <div class="workspace-user-card">
-        <span class="signed-label">当前登录</span>
-        <strong>{{ sessionState.profile?.nickname }}</strong>
-        <p>{{ sessionState.profile?.username }}</p>
-        <p>{{ sessionState.roles.join(' / ') }}</p>
-        <button class="ghost-btn full-width" @click="logout">退出登录</button>
+      <div class="topnav-user">
+        <div class="topnav-user-info">
+          <strong>{{ sessionState.profile?.nickname }}</strong>
+          <span>{{ sessionState.roles.join(' / ') }}</span>
+        </div>
+        <button class="ghost-btn" @click="logout">退出</button>
       </div>
-    </aside>
+    </header>
 
     <section class="workspace-main">
       <header class="workspace-header">
