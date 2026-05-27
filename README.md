@@ -1,159 +1,341 @@
-# bz-lottery
 
-一个基于真实现网业务场景的**微服务抽奖平台**，主要用于后端架构实践与技术学习。
+<div align="center">
 
-## 技术栈
+# 🎰 bz-lottery — 抽奖平台
 
-| 分类 | 技术 | 版本 |
-|------|------|------|
-| 语言 | Java | 25（虚拟线程 / Record / 模式匹配） |
-| 框架 | Spring Boot + Spring Cloud | 3.5.7 + 2025.0.1 |
-| 网关 | Spring Cloud Gateway（WebFlux） | — |
-| 服务发现 | Nacos | 3.1.1 |
-| RPC | Apache Dubbo | 3.3.6 |
-| 认证 | Sa-Token + Spring Security（Keycloak OAuth2） | 1.45.0 / 6.5.7 |
-| ORM | MyBatis-Plus | 3.5.12 |
-| 数据库 | PostgreSQL | 17 |
-| 缓存 / 锁 | Redis + Redisson | 7.4 / 3.50.0 |
-| 消息队列 | Kafka + RocketMQ | 3.9.2 / 5.3.2 |
-| 文件存储 | MinIO | RELEASE.2025-07 |
-| 工作流 | Activiti | 7.1.0.M6 |
-| AI | 智谱 GLM SDK | 0.3.3 |
-| 可观测性 | SkyWalking + Prometheus + Actuator | 9.3.0 |
-| 构建 | Maven | 3.9+ |
+**Evolution-ready draw platform with microservice backend & modern frontend**
 
-## 模块架构
-
-```
-                    ┌──────────────┐
-                    │    Nginx     │  (port 9010)
-                    └──────┬───────┘
-                           │
-                    ┌──────┴───────┐
-                    │   Gateway    │  (port 9008)  Spring Cloud Gateway
-                    └──────┬───────┘
-           ┌───────────────┼───────────────┐
-           │               │               │
-    ┌──────┴──────┐ ┌──────┴──────┐ ┌──────┴──────┐
-    │ lottery-user│ │lottery-ai  │ │lottery-     │
-    │   :9101     │ │   :9108    │ │award :9104  │
-    │ 用户/认证    │ │ AI分析     │ │ 奖品查询    │
-    └─────────────┘ └─────────────┘ └─────────────┘
-           │
-    ┌──────┴──────┐
-    │lottery-     │
-    │lottery:9103 │  ★ 核心抽奖引擎
-    └─────────────┘
-
-   ┌──────────────┬──────────────┬──────────────┬──────────────┬──────────────┐
-   │   activity   │     pay      │   workflow   │    file      │   monitor    │
-   │    :9102     │    :9105     │    :9106     │    :9107     │    :9109     │
-   │   (规划中)    │   (规划中)    │   (规划中)    │   (规划中)    │   (规划中)    │
-   └──────────────┴──────────────┴──────────────┴──────────────┴──────────────┘
-
-   lottery-common  ← 所有模块共享（ApiResponse / 异常 / CORS / Web 配置）
-```
-
-### 模块职责
-
-| 模块 | 端口 | 状态 | 职责 |
-|------|------|------|------|
-| `lottery-gateway` | 9008 | 可用 | 统一入口、认证校验、CORS、TraceId 传播 |
-| `lottery-common` | — | 可用 | 公共响应体、全局异常处理、跨域配置 |
-| `lottery-user` | 9101 | 可用 | 注册/登录/登出、Keycloak OAuth2 对接、RBAC 权限 |
-| `lottery-lottery` | 9103 | 可用 | 核心抽奖引擎：策略模式、保底阶梯、库存扣减 |
-| `lottery-award` | 9104 | 可用 | 奖品查询、奖品列表 |
-| `lottery-ai` | 9108 | 可用 | GLM AI 抽奖行为分析，支持 SSE 流式输出 |
-| `lottery-activity` | 9102 | 规划中 | 活动/场次管理 |
-| `lottery-pay` | 9105 | 规划中 | 支付服务 |
-| `lottery-workflow` | 9106 | 规划中 | Activiti 审批流 |
-| `lottery-file` | 9107 | 规划中 | MinIO 文件上传下载 |
-| `lottery-monitor` | 9109 | 规划中 | 健康监控 |
-
-## 核心设计要点
-
-### 抽奖策略（`lottery-lottery`）
-
-采用**策略模式**，支持动态切换：
-
-| 策略 | 说明 |
-|------|------|
-| `ProbabilityOnlyDrawStrategy` | 纯概率抽奖，基于奖品权重随机选取 |
-| `GuaranteeLadderDrawStrategy` | 保底阶梯策略，支持 LUCKY / MID_TIER / SPECIAL 三级保底，可降级 |
-
-策略通过 `lottery_system_config` 表配置 `LOTTERY_DRAW_STRATEGY` 项切换，`LotteryStrategyResolver` 在启动时从 DB 加载，支持运行时 `reload()`。
-
-### 并发安全
-
-```
-用户请求
-    │
-    ├── Redisson 分布式锁（per-user）          ← 本次新增
-    │   lottery:draw:lock:user:{userId}
-    │   等待 3s / 租约 10s
-    │
-    ├── requestNo 幂等检查                     ← 防重复提交
-    │
-    ├── 乐观锁库存扣减                          ← 最后防线
-    │   UPDATE SET available_stock = available_stock - 1
-    │   WHERE id=? AND available_stock > 0
-    │
-    └── 记录写入
-```
-
-### 认证链路
-
-```
-Client ─→ Gateway ─→ lottery-user (Sa-Token 验证)
-                        │
-                        ├── 本地账号密码 (BCrypt)
-                        ├── Keycloak OAuth2 / OIDC
-                        └── SaTokenAuthenticationFilter → Spring Security Context
-```
-
-## 本地开发
-
-### 环境准备
-
-```powershell
-# 1. 启动基础设施（PostgreSQL / Redis / Nacos / Kafka / RocketMQ / MinIO）
-.\deploy\scripts\up-dev.ps1
-
-# 2. 启动 Nginx 反向代理（可选，不启动也可直连服务端口）
-.\deploy\scripts\up-edge.ps1
-
-# 3. IDE 中按需启动各微服务 Application 类
-```
-
-### 环境变量
-
-参考 `deploy/env/.env.example`，首次运行自动从 example 复制。
+</div>
 
 ---
 
-## 优化待办清单
+## 📖 项目介绍
 
-> 以下为本项目已识别的架构优化点，按优先级排列，待逐一实施。已完成项标记为 ✅。
+**bz-lottery** 是一个面向中小规模抽奖场景的完整解决方案，采用前后端分离架构。后端基于 Spring Boot 3 + Spring Cloud Alibaba 微服务体系，前端基于 Vue 3 + Vite 6 构建。
 
-### P0 — 影响正确性与稳定性
+项目不仅覆盖了从活动管理、奖品配置、概率运算到实时通知的抽奖全链路，还搭建了完善的本地联调基础设施（Docker Compose）、CI/CD 工具链（Jenkins / Nexus）以及生产部署草图，具备从开发到上线的完整闭环能力。
 
-- [x] **抽奖服务分布式锁** — `LotteryDrawService.draw()` 已加入 Redisson 按用户粒度的分布式锁（2026-05-22）
-- [ ] **网关 Token 缓存** — `GatewayAuthFilter` 每次请求都通过 WebClient 调用 `lottery-user` 验证 Token，高并发下 user 服务是瓶颈。建议引入 Caffeine 本地缓存 + Redis 二级缓存，减少回源调用
-- [ ] **数据库隔离** — 当前多个服务共用同一 PostgreSQL 实例和 schema，Flyway 迁移脚本没有按服务隔离。建议至少按 schema 拆分，长期按数据库实例拆分
+> **定位**：开箱即用的抽奖平台骨架，适用于运营活动、积分抽奖、会员营销等场景。
 
-### P1 — 影响可维护性与可观测性
+---
 
-- [ ] **补全测试覆盖** — 目前仅 `lottery-lottery` 有 12 个单元测试，`lottery-user`、`lottery-award`、`lottery-ai` 等模块零测试。建议至少补齐核心服务的单元测试和 Controller 集成测试
-- [ ] **Nacos 配置中心** — 当前 Nacos 仅用于服务发现（`nacos.config.enabled: false`），各服务各自维护 `application.yml`，大量重复配置。启用配置中心可实现共享配置与热刷新
-- [ ] **业务指标埋点** — SkyWalking + Prometheus 已部署但代码中无自定义指标（`@Timed` / Counter / Gauge）。关键路径需要：抽奖 QPS/延迟、库存扣减失败次数、AI 调用延迟和 fallback 率、Token 校验耗时
-- [ ] **日志持久化** — 所有模块 `logback-spring.xml` 仅 CONSOLE appender，容器重启后日志丢失。建议增加 JSON 文件 appender，便于后续接入 ELK/Loki
+## 🧱 技术栈
 
-### P2 — 架构演进方向
+### 后端
 
-- [ ] **清理未使用的消息队列** — Kafka + RocketMQ 两个容器在 `compose.dev-infra.yml` 中持续运行，但代码中无任何生产/消费逻辑。建议明确各自定位（如 Kafka 做事件流、RocketMQ 做事务消息），或暂时只保留一个
-- [ ] **空壳服务按需部署** — `activity` / `pay` / `workflow` / `file` / `monitor` 五个模块目前仅有启动类和 `/ping` 接口，占用端口和 Nacos 注册资源。建议按 YAGNI 原则，有业务需求时再启用
-- [ ] **引入 API 版本化** — 当前接口路径为 `/api/{module}/xxx`，无版本前缀。建议尽早加上 `/v1`，避免未来 Breaking Change 的迁移成本
-- [ ] **生产环境 Nacos 配置** — `prod/compose/compose.prod.yml` 中 `NACOS_SERVER_ADDR` 默认空，无 Nacos 容器，意味着生产环境不启用服务发现。需确认这是设计意图还是遗漏
-- [ ] **抽奖策略管理接口** — 当前策略切换需直接改 DB `lottery_system_config` 表。建议增加管理端接口，让运营动态切换策略并即时生效（调用 `LotteryStrategyResolver.reload()`）
-- [ ] **引入 Resilience4j 熔断降级** — 网关调用 user 服务、AI 模块调用 GLM API，均无熔断保护。依赖不可用时可能导致线程堆积
-- [ ] **前端 Nginx 模式切换** — `deploy/scripts/set-nginx-dev-mode.ps1` / `set-nginx-static-mode.ps1` 当前通过替换配置文件实现，可考虑用环境变量驱动，减少脚本维护成本
+| 类别 | 选型 | 版本 |
+|------|------|------|
+| 基础框架 | Spring Boot | 3.5.7 |
+| JDK | Java | 25 (Virtual Threads) |
+| 微服务 | Spring Cloud Alibaba | 2025.0.0.0 |
+| 网关 | Spring Cloud Gateway | — |
+| 认证授权 | Spring Security + Sa-Token 风格 | 6.5.7 |
+| ORM | MyBatis-Plus | 3.5.12 |
+| 数据库 | PostgreSQL | 17 |
+| 缓存 | Redis + Redisson | 7.4 / 3.50.0 |
+| 消息队列 | RocketMQ / Kafka | 5.3.2 / 3.9.2 |
+| 实时推送 | WebSocket (Spring) | — |
+| 注册配置 | Nacos | 3.1.1 |
+| RPC | Apache Dubbo | 3.3.6 |
+| 文件存储 | MinIO | — |
+| API 文档 | OpenAPI (SpringDoc) | — |
+
+### 前端
+
+| 类别 | 选型 | 版本 |
+|------|------|------|
+| 框架 | Vue | 3.5 |
+| 构建工具 | Vite | 6.2 |
+| 路由 | Vue Router | 4.6 |
+| 状态管理 | Pinia (stores) | — |
+| UI 组件 | Element Plus | — |
+| HTTP 客户端 | Axios | — |
+
+### 基础设施与 DevOps
+
+| 类别 | 选型 |
+|------|------|
+| 容器编排 | Docker Compose |
+| CI/CD | Jenkins + 自动化脚本 |
+| 制品管理 | Nexus Repository |
+| 部署环境 | 本地 dev / 边缘 edge / 生产 prod |
+| 操作系统 | Linux / Windows (PowerShell 脚本) |
+
+---
+
+## 🎯 核心功能
+
+### 业务功能
+
+- **抽奖活动管理** — 创建、编辑、上下架抽奖活动，支持多活动并行
+- **奖品配置** — 定义奖品种类、库存、图片、发放规则
+- **概率设置** — 支持按奖品维度配置中奖概率，灵活调整权重
+- **用户参与抽奖** — 基于权限校验的一次/多次抽奖，实时扣减库存
+- **实时中奖通知** — WebSocket 推送中奖结果，即时反馈
+- **中奖记录管理** — 用户维度和全局维度的中奖历史查询
+- **账号与权限管理** — 基于角色的路由级权限控制（`LOTTERY_USER` / `LOTTERY_ADMIN`）
+- **运营后台** — 活动总览、运营操作台，支持管理级操作
+
+### 系统能力
+
+- **虚拟线程 (Virtual Threads)** — Java 25 结构化并发，提升 I/O 密集型场景吞吐
+- **统一响应格式** — `ApiResponse<T>` 全局封装，code + message + data + timestamp
+- **全局异常处理** — 统一异常拦截与错误码映射
+- **TraceId 链路追踪** — 请求级别的 Trace ID 注入，便于日志串联
+- **OpenAPI 文档** — 自动生成接口文档，支持 Swagger UI 在线调试
+- **网关统一路由** — Spring Cloud Gateway 集中管理微服务路由与跨域
+
+---
+
+## 🚀 本地启动
+
+### 前置条件
+
+- JDK ≥ 25
+- Node.js ≥ 22
+- Maven ≥ 3.9
+- Docker & Docker Compose（启动基础设施依赖）
+
+### 1. 启动基础设施 (Docker)
+
+项目使用 Docker Compose 管理本地开发依赖。在项目根目录执行：
+
+```bash
+# 启动数据库、缓存、消息队列、文件存储等
+./deploy/scripts/up-dev.ps1          # Windows PowerShell
+# 或
+deploy/scripts/up-dev.ps1
+
+# （可选）启动构建工具链 Nexus + Jenkins
+./deploy/scripts/up-tools.ps1
+```
+
+启动的服务包括：PostgreSQL 17、Redis 7.4、Nacos 3.1、Kafka 3.9、RocketMQ 5.3、MinIO。
+
+环境变量模板见 `deploy/env/.env.example`，脚本会自动复制为 `.env` 使用。
+
+### 2. 启动后端
+
+```bash
+# 进入后端根目录
+cd lottery-backend
+
+# 编译全部模块
+mvn clean compile -U
+
+# 按模块顺序启动（推荐 IDE 逐模块启动）
+# 启动顺序：lottery-gateway → lottery-user → lottery-activity → lottery-lottery
+#            → lottery-award → lottery-pay → lottery-workflow → lottery-file
+#            → lottery-monitor
+
+# （可选）打包
+mvn clean package -DskipTests
+```
+
+> **说明**：网关默认端口 `9008`，各微服务通过 Nacos 注册发现。  
+> 各模块启动类位于 `com.lottery.{module}.{Module}Application.java`。
+
+### 3. 启动前端
+
+```bash
+# 进入前端目录
+cd lottery-frontend
+
+# 安装依赖
+npm install
+
+# 启动开发服务器（默认端口 9510）
+npm run dev
+```
+
+> 开发服务器自动代理 `/lottery-*` 请求到网关 `http://localhost:9008`，支持 HMR 热更新。  
+> 可通过 `.env` 文件调整端口和网关地址：
+> ```
+> VITE_DEV_PORT=9510
+> VITE_GATEWAY_TARGET=http://localhost:9008
+> ```
+
+### 4. 访问
+
+| 入口 | 地址 |
+|------|------|
+| 前端页面 | `http://localhost:9510` |
+| 后端 API (网关) | `http://localhost:9008` |
+| Swagger UI | `http://localhost:9008/swagger-ui.html` |
+| Nacos 控制台 | `http://localhost:8080` |
+| MinIO 控制台 | `http://localhost:9001` |
+
+---
+
+## 📁 项目目录结构
+
+```
+bz-lottery/
+├── lottery-backend/                    # 后端 — Maven 多模块
+│   ├── pom.xml                         # 父 POM，聚合所有子模块
+│   ├── .mvn/                           # Maven Wrapper 配置
+│   ├── lottery-gateway/                # 网关层 — Spring Cloud Gateway
+│   │   └── src/main/java/com/lottery/gateway/
+│   │       ├── LotteryGatewayApplication.java
+│   │       ├── config/                 # 网关配置（路由、跨域、限流）
+│   │       ├── filter/                 # 网关过滤器（鉴权、日志）
+│   │       └── support/                # 辅助组件
+│   ├── lottery-common/                 # 公共模块 — 基础设施抽象
+│   │   └── src/main/java/com/lottery/common/
+│   │       ├── concurrent/             # 虚拟线程 + 结构化并发
+│   │       ├── config/                 # 公共配置（OpenAPI、VirtualThread、WebMvc）
+│   │       ├── exception/              # 业务异常 + 全局处理器
+│   │       ├── response/               # 统一响应 ApiResponse
+│   │       └── web/                    # TraceId 过滤器、ResponseBody 增强
+│   ├── lottery-user/                   # 用户与认证模块
+│   │   └── src/main/java/com/lottery/user/
+│   │       ├── controller/             # 登录、注册、用户管理接口
+│   │       ├── domain/entity/          # 用户实体
+│   │       ├── infrastructure/mapper/  # MyBatis-Plus Mapper
+│   │       ├── model/request/response/ # 请求/响应 DTO
+│   │       ├── security/               # 认证过滤器 + 权限上下文
+│   │       ├── service/                # 用户业务逻辑
+│   │       └── config/                 # 安全配置
+│   ├── lottery-activity/               # 活动管理模块
+│   │   └── src/main/java/com/lottery/activity/
+│   │       └── controller/             # 活动 CRUD 接口
+│   ├── lottery-lottery/                # 核心抽奖引擎
+│   │   └── src/main/java/com/lottery/lottery/
+│   │       ├── application/            # 应用层 — 抽奖策略 + DTO
+│   │       ├── controller/             # 抽奖接口
+│   │       ├── domain/entity/          # 抽奖领域实体
+│   │       └── infrastructure/mapper/  # 数据访问
+│   ├── lottery-award/                  # 奖品管理模块
+│   │   └── src/main/java/com/lottery/award/
+│   │       ├── application/            # 奖品服务 + DTO
+│   │       ├── controller/             # 奖品 CRUD 接口
+│   │       ├── domain/entity/          # 奖品实体
+│   │       └── infrastructure/mapper/  # 数据访问
+│   ├── lottery-pay/                    # 支付/积分兑换模块
+│   │   └── ...
+│   ├── lottery-workflow/               # 工作流与实时推送模块
+│   │   ├── WebSocket 支持
+│   │   └── ...
+│   ├── lottery-file/                   # 文件存储模块（MinIO）
+│   │   └── ...
+│   ├── lottery-ai/                     # AI 智能模块
+│   │   └── ...
+│   └── lottery-monitor/                # 服务监控模块
+│       └── ...
+│
+├── lottery-frontend/                   # 前端 — Vue 3 + Vite
+│   ├── index.html                      # 入口 HTML
+│   ├── vite.config.js                  # Vite 配置（代理、HMR）
+│   ├── package.json                    # 前端依赖
+│   ├── .env / .env.example             # 环境变量
+│   ├── Dockerfile.dev                  # 前端开发镜像
+│   └── src/
+│       ├── main.js                     # Vue 应用入口
+│       ├── App.vue                     # 根组件
+│       ├── style.css                   # 全局样式
+│       ├── api/                        # HTTP 接口层（Axios）
+│       │   ├── http.js                 # Axios 实例 + 拦截器
+│       │   ├── auth.js                 # 认证相关 API
+│       │   └── lottery.js             # 抽奖相关 API
+│       ├── router/                     # 路由
+│       │   ├── index.js                # 路由实例 + 权限守卫
+│       │   └── route-table.js          # 路由表定义（含角色元信息）
+│       ├── stores/                     # Pinia 状态管理
+│       │   └── session.js              # 会话/权限状态
+│       └── views/                      # 页面视图
+│           ├── LoginView.vue           # 登录页
+│           ├── WorkspaceLayout.vue     # 工作台布局（侧边栏导航）
+│           └── workspace/
+│               ├── OverviewView.vue    # 🏠 指挥总览
+│               ├── LotteryView.vue     # 🎰 抽奖工作台
+│               ├── PrizeCenterView.vue # 🏆 奖池中心
+│               ├── OperationsView.vue  # ⚙️ 运营权限台（Admin）
+│               └── ProfileView.vue     # 👤 账号与权限
+│
+├── deploy/                             # 部署与基础设施
+│   ├── compose/                        # Docker Compose 编排
+│   │   ├── compose.dev-infra.yml       # 开发基础设施（PG / Redis / Nacos / Kafka / RocketMQ / MinIO）
+│   │   ├── compose.dev-tools.yml       # 工程化工具（Jenkins / Nexus）
+│   │   └── compose.edge.yml            # 边缘入口（Nginx）
+│   ├── docker/                         # Docker 构建资产
+│   │   ├── build/                      # Dockerfile
+│   │   ├── conf/                       # 运行时配置
+│   │   └── data/                       # 持久化数据
+│   ├── env/                            # 环境变量模板
+│   │   └── .env.example
+│   ├── scripts/                        # 一键管理脚本（PowerShell）
+│   │   ├── up-dev.ps1                  # 启动开发环境
+│   │   ├── up-tools.ps1                # 启动工具链
+│   │   ├── up-jenkins.ps1              # 启动 Jenkins
+│   │   ├── up-edge.ps1                 # 启动边缘网关
+│   │   ├── up-full.ps1                 # 全量启动
+│   │   ├── down.ps1                    # 停止所有
+│   │   └── set-nginx-*.ps1             # Nginx 模式切换
+│   └── prod/                           # 生产部署草图
+│       ├── compose/                    # 生产编排
+│       ├── env/                        # 生产环境变量
+│       ├── conf/nginx/                 # Nginx 配置
+│       ├── scripts/                    # 部署/回滚脚本
+│       └── data/                       # 持久化数据目录
+│
+├── scripts/                            # 通用工具脚本
+│   ├── cd/                             # 持续交付相关
+│   └── ci/                             # CI 校验脚本
+│       ├── backend-verify.sh           # 后端编译+测试
+│       ├── frontend-build.sh           # 前端构建
+│       └── smoke-check.sh              # 冒烟测试
+│
+├── .agents/                            # 项目智能体知识库
+│   ├── api/api-spec.md                 # API 规范
+│   ├── architecture/architecture-rules.md  # 架构规则
+│   ├── business/business-rules.md      # 业务规则
+│   ├── code/                           # 编码规范
+│   ├── commit/git-commit-guidelines.md # Git 提交规范
+│   └── data/                           # 数据设计
+│       ├── ddl-all-tables.md           # 全量 DDL
+│       └── schema-index.md             # 数据表索引
+│
+├── backend/                            # （构建输出目录，与源目录同级）
+├── frontend/                           # （构建输出目录，与源目录同级）
+├── LICENSE
+└── README.md                           # 本文件
+```
+
+---
+
+## 🧭 后续扩展计划
+
+### 1. 🐳 Docker 容器化
+
+- 各微服务模块补充 `Dockerfile`（多阶段构建，基于 `eclipse-temurin:25-jre-alpine`）
+- 统一 Docker Compose 编排文件，一条命令启动全栈
+- 集成 docker-compose healthcheck 依赖等待机制
+
+### 2. 🤖 自动化 CI/CD
+
+- 完善 Jenkins Pipeline（`deploy/Jenkinsfile`）：
+  - 代码检测 → 单元测试 → 集成测试 → 镜像构建 → 部署
+- 引入自动化冒烟测试（`scripts/ci/smoke-check.sh`）
+- 支持 Blue-Green 部署与一键回滚（`deploy/prod/scripts/rollback-prod.ps1`）
+
+### 3. 📊 服务监控与可观测性
+
+- 集成 Prometheus + Grafana 监控微服务指标（JVM / 请求 / 缓存 / 消息队列）
+- 集成 SkyWalking / OpenTelemetry 实现分布式链路追踪
+- 日志采集接入 ELK / Loki 栈
+- 核心业务指标（抽奖 QPS、中奖率、库存水位）仪表盘
+
+### 4. ⚡ 高并发优化
+
+- **缓存层**：抽奖活动配置与奖品库存预加载至 Redis，Redisson 分布式锁防超卖
+- **消息队列**：抽奖请求异步化，RocketMQ 削峰填谷，保障最终一致性
+- **抽奖策略**：支持权重预计算、分段概率表、本地缓存预热
+- **数据库层**：读写分离、库存字段乐观锁、定时库存快照
+- **网关层**：基于 Spring Cloud Gateway 的限流（令牌桶 / 滑动窗口）、降级、熔断
+- **弹性伸缩**：基于 CPU / 内存 / 队列深度的 Pod 水平扩缩容（K8s HPA）
+
+---
+
+<div align="center">
+<sub>Built with Spring Boot 3 · Vue 3 · Docker · RocketMQ · Virtual Threads</sub>
+</div>
