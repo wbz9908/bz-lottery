@@ -3,7 +3,7 @@
 
 # 🎰 bz-lottery — 抽奖平台
 
-**Evolution-ready draw platform with microservice backend & modern frontend**
+**Spring Boot 3 + Vue 3 全栈微服务练习项目**
 
 </div>
 
@@ -11,11 +11,13 @@
 
 ## 📖 项目介绍
 
-**bz-lottery** 是一个面向中小规模抽奖场景的完整解决方案，采用前后端分离架构。后端基于 Spring Boot 3 + Spring Cloud Alibaba 微服务体系，前端基于 Vue 3 + Vite 6 构建。
+**bz-lottery** 是一个个人学习项目，采用前后端分离架构搭建的抽奖平台原型。后端基于 Spring Boot 3 + Spring Cloud Alibaba 微服务体系，前端基于 Vue 3 + Vite 6 构建，涵盖了从活动管理、奖品配置、概率运算到实时通知的抽奖核心链路。
 
-项目不仅覆盖了从活动管理、奖品配置、概率运算到实时通知的抽奖全链路，还搭建了完善的本地联调基础设施（Docker Compose）、CI/CD 工具链（Jenkins / Nexus）以及生产部署草图，具备从开发到上线的完整闭环能力。
+开发模式为 **个人 + AI 辅助编程**，借助 AI 工具在架构设计、代码生成、调试等环节提效，项目整体设计、技术选型与核心逻辑由个人把控。
 
-> **定位**：开箱即用的抽奖平台骨架，适用于运营活动、积分抽奖、会员营销等场景。
+项目开源至 GitHub，用于记录 Spring Cloud 微服务 + Vue 3 前后端分离的全栈实践，包含微服务拆分、容器化本地开发环境、权限路由、WebSocket 实时推送等技术场景的练习实现。
+
+> **定位**：个人全栈练习作品。
 
 ---
 
@@ -56,9 +58,9 @@
 | 类别 | 选型 |
 |------|------|
 | 容器编排 | Docker Compose |
-| CI/CD | Jenkins + 自动化脚本 |
-| 制品管理 | Nexus Repository |
-| 部署环境 | 本地 dev / 边缘 edge / 生产 prod |
+| CI/CD | Jenkins（练习搭建） |
+| 制品管理 | Nexus Repository（练习搭建） |
+| 部署环境 | 本地 dev / 边缘 edge / 生产草图 |
 | 操作系统 | Linux / Windows (PowerShell 脚本) |
 
 ---
