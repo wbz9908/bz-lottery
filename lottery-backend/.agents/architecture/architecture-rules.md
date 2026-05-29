@@ -1,7 +1,7 @@
 ---
 category: architecture
 version: "1.0.0"
-last_updated: "2026-05-09"
+last_updated: "2026-05-29"
 ---
 
 # 架构规范

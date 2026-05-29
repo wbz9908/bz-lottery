@@ -1,6 +1,6 @@
-# .agents — bz-lottery 项目 AI 研发规范
+# .agents — bz-lottery 后端 AI 研发规范
 
-本目录存放面向 AI 编程助手的项目研发规范与参考文档。所有文档按领域拆分，由 `SKILL.md` 统一编排加载顺序。
+本目录存放面向 AI 编程助手的后端研发规范与参考文档。所有文档按领域拆分，由 `SKILL.md` 统一编排加载顺序。
 
 ## 目录结构
 
@@ -9,7 +9,6 @@
 ├── SKILL.md                           # 技能入口：加载顺序、全局规则、交付标准
 ├── README.md                          # 本文件：目录导航与维护说明
 ├── .gitignore                         # Obsidian 工作区元数据忽略
-├── .obsidian/                         # Obsidian 工作区配置（仅用于文档浏览，不参与 AI 加载）
 ├── architecture/
 │   └── architecture-rules.md          # 架构规范：模块边界、分层、跨服务调用
 ├── business/
@@ -41,6 +40,16 @@
 | 数据 | `data/schema-index.md` | 表结构索引与关系说明 |
 | 数据 | `data/ddl-all-tables.md` | 全量表结构 DDL，所有建表语句合并，可直接执行 |
 | 提交 | `commit/git-commit-guidelines.md` | 分支命名、提交信息、PR 模板 |
+
+## AI 辅助开发工作流
+
+当使用 AI 编程助手（如 Claude Code、GitHub Copilot 等）进行后端开发时，助手的 `SKILL.md` 会被自动加载，确保 AI 生成代码遵循项目规范：
+
+1. **需求分析阶段** → AI 先读取业务规则 [business-rules] 和架构规范 [architecture-rules]
+2. **接口设计阶段** → AI 参照 API 规范 [api-spec] 设计接口
+3. **编码实现阶段** → AI 严格按照 [coding-standards] 和 [java-dev] 编写代码
+4. **数据库变更** → AI 遵循 [data-baseline] 编写 Flyway 脚本，同步更新 [ddl-all-tables] 和 [schema-index]
+5. **提交阶段** → AI 参照 [git-commit-guidelines] 生成规范的提交信息
 
 ## 维护规范
 

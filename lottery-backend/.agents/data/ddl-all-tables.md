@@ -1,7 +1,7 @@
 ---
 category: data
 version: "1.0.0"
-last_updated: "2026-05-11"
+last_updated: "2026-05-29"
 ---
 
 # 全量表结构 DDL

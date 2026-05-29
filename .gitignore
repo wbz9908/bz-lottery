@@ -32,3 +32,10 @@ replay_pid*
 .DS_Store
 .deepseek
 .codex
+
+# Deploy environment files
+deploy/env/.env
+deploy/prod/env/prod.env
+deploy/prod/storage/*
+!/deploy/prod/storage/.gitkeep
+deploy/docker/.env

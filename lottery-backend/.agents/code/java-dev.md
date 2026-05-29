@@ -1,7 +1,7 @@
 ---
 category: code
 version: "1.0.0"
-last_updated: "2026-05-09"
+last_updated: "2026-05-29"
 ---
 
 # Java 开发规范

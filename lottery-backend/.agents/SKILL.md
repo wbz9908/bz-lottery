@@ -1,15 +1,15 @@
 ---
-name: bz-lottery-dev-skill
+name: bz-lottery-backend-dev
 version: "1.0.0"
-description: 面向 bz-lottery 项目的研发技能。用于后端开发、前端联调、数据库迁移、接口设计、业务规则落地、代码规范执行、提交规范执行等场景。触发后先按目录顺序读取 .agents 规范与 reference 文档并执行。
+description: 面向 bz-lottery 后端项目的 AI 研发技能。用于 Spring Boot 微服务开发、数据库迁移、接口设计、业务规则落地、代码规范执行、提交规范执行等场景。触发后先读取 .agents 规范与 reference 文档并执行。
 license: internal
 ---
 
-# bz-lottery 项目技能
+# bz-lottery 后端研发技能
 
 ## 摘要
 
-本技能用于统一项目研发流程和交付质量。执行任何任务前，先读取规范，再实施改动，再执行验证，最后按统一格式交付结果。
+本技能用于统一后端研发流程和交付质量。执行任何任务前，先读取规范，再实施改动，再执行验证，最后按统一格式交付结果。
 
 ## 规则
 
@@ -35,20 +35,26 @@ license: internal
 2. 是否已按目录顺序读取 reference 文档。
 3. 是否确认改动边界和受影响模块。
 4. 是否保持返回体、异常、日志风格一致。
-5. 是否执行最小可行验证命令。
+5. 是否执行最小可行验证命令（如 `mvn -pl <module> compile`）。
 6. 是否在交付中说明未验证项和风险项。
 
-## 示例
+## 开发命令速查
 
-```text
-请先读取 .agents/SKILL.md，并按目录顺序读取 reference：
-1) architecture: [architecture-rules]
-2) business: [business-rules]
-3) api: [api-spec]
-4) code: [coding-standards], [java-dev]
-5) data: [data-baseline], [schema-index], [ddl-all-tables]
-6) commit: [git-commit-guidelines]
-然后再开始实现。
+```bash
+# 编译全部模块
+mvn -q -DskipTests compile
+
+# 编译单个模块
+mvn -pl lottery-lottery -am compile
+
+# 运行测试
+mvn -pl lottery-lottery test
+
+# 启动单个服务
+mvn -pl lottery-gateway spring-boot:run
+
+# 启动服务（含依赖模块）
+mvn -pl lottery-lottery -am spring-boot:run
 ```
 
 ## Reference

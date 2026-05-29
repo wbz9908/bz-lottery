@@ -1,7 +1,7 @@
 ---
 category: business
 version: "1.0.0"
-last_updated: "2026-05-09"
+last_updated: "2026-05-29"
 ---
 
 # 业务规则

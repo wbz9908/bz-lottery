@@ -287,15 +287,9 @@ bz-lottery/
 │       ├── frontend-build.sh           # 前端构建
 │       └── smoke-check.sh              # 冒烟测试
 │
-├── .agents/                            # 项目智能体知识库
-│   ├── api/api-spec.md                 # API 规范
-│   ├── architecture/architecture-rules.md  # 架构规则
-│   ├── business/business-rules.md      # 业务规则
-│   ├── code/                           # 编码规范
-│   ├── commit/git-commit-guidelines.md # Git 提交规范
-│   └── data/                           # 数据设计
-│       ├── ddl-all-tables.md           # 全量 DDL
-│       └── schema-index.md             # 数据表索引
+├── lottery-backend/.agents/            # 后端 AI 研发规范（架构、业务、API、编码、数据）→ SKILL.md
+├── lottery-frontend/.agents/           # 前端 AI 研发规范（API 对接、Vue 3 开发）→ SKILL.md
+├── deploy/.agents/                     # 部署 AI 研发规范（Docker、Nginx、基础设施）→ SKILL.md
 │
 ├── backend/                            # （构建输出目录，与源目录同级）
 ├── frontend/                           # （构建输出目录，与源目录同级）

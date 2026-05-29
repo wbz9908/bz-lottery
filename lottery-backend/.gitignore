@@ -18,8 +18,3 @@ buildNumber.properties
 /.idea/
 /.m2/
 /lottery-platform-backend.iml
-/deploy/env/.env
-/deploy/prod/env/prod.env
-/deploy/prod/storage/*
-!/deploy/prod/storage/.gitkeep
-/deploy/docker/.env
