@@ -1,7 +1,7 @@
 package com.lottery.lottery.application.strategy;
 
-import com.lottery.lottery.domain.entity.DrawRecord;
-import com.lottery.lottery.domain.entity.Prize;
+import com.lottery.domain.entity.DrawRecord;
+import com.lottery.domain.entity.Prize;
 import org.junit.jupiter.api.Test;
 
 import java.math.BigDecimal;

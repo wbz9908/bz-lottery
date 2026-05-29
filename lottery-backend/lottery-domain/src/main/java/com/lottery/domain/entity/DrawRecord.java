@@ -1,4 +1,4 @@
-package com.lottery.lottery.domain.entity;
+package com.lottery.domain.entity;
 
 import com.baomidou.mybatisplus.annotation.IdType;
 import com.baomidou.mybatisplus.annotation.TableId;
@@ -7,24 +7,23 @@ import com.baomidou.mybatisplus.annotation.TableName;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
-@TableName("lottery_platform.lottery_prize")
-public class Prize {
+@TableName("lottery_platform.lottery_draw_record")
+public class DrawRecord {
 
     @TableId(type = IdType.AUTO)
     private Long id;
+    private String recordNo;
+    private Long userId;
+    private Long prizeId;
     private String prizeCode;
     private String prizeName;
     private String prizeLevel;
     private Integer prizeLevelSort;
-    private BigDecimal probability;
-    private Integer totalStock;
-    private Integer availableStock;
-    private String prizeDesc;
-    private String prizeImage;
-    private Integer status;
-    private Integer sort;
-    private String createdBy;
-    private String updatedBy;
+    private BigDecimal hitProbability;
+    private Integer drawStatus;
+    private String drawRemark;
+    private String requestNo;
+    private String traceId;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
     private Boolean deleted;
@@ -35,6 +34,30 @@ public class Prize {
 
     public void setId(Long id) {
         this.id = id;
+    }
+
+    public String getRecordNo() {
+        return recordNo;
+    }
+
+    public void setRecordNo(String recordNo) {
+        this.recordNo = recordNo;
+    }
+
+    public Long getUserId() {
+        return userId;
+    }
+
+    public void setUserId(Long userId) {
+        this.userId = userId;
+    }
+
+    public Long getPrizeId() {
+        return prizeId;
+    }
+
+    public void setPrizeId(Long prizeId) {
+        this.prizeId = prizeId;
     }
 
     public String getPrizeCode() {
@@ -69,76 +92,44 @@ public class Prize {
         this.prizeLevelSort = prizeLevelSort;
     }
 
-    public BigDecimal getProbability() {
-        return probability;
+    public BigDecimal getHitProbability() {
+        return hitProbability;
     }
 
-    public void setProbability(BigDecimal probability) {
-        this.probability = probability;
+    public void setHitProbability(BigDecimal hitProbability) {
+        this.hitProbability = hitProbability;
     }
 
-    public Integer getTotalStock() {
-        return totalStock;
+    public Integer getDrawStatus() {
+        return drawStatus;
     }
 
-    public void setTotalStock(Integer totalStock) {
-        this.totalStock = totalStock;
+    public void setDrawStatus(Integer drawStatus) {
+        this.drawStatus = drawStatus;
     }
 
-    public Integer getAvailableStock() {
-        return availableStock;
+    public String getDrawRemark() {
+        return drawRemark;
     }
 
-    public void setAvailableStock(Integer availableStock) {
-        this.availableStock = availableStock;
+    public void setDrawRemark(String drawRemark) {
+        this.drawRemark = drawRemark;
     }
 
-    public String getPrizeDesc() {
-        return prizeDesc;
+    public String getRequestNo() {
+        return requestNo;
     }
 
-    public void setPrizeDesc(String prizeDesc) {
-        this.prizeDesc = prizeDesc;
+    public void setRequestNo(String requestNo) {
+        this.requestNo = requestNo;
     }
 
-    public String getPrizeImage() {
-        return prizeImage;
+    public String getTraceId() {
+        return traceId;
     }
 
-    public void setPrizeImage(String prizeImage) {
-        this.prizeImage = prizeImage;
-    }
-
-    public Integer getStatus() {
-        return status;
-    }
-
-    public void setStatus(Integer status) {
-        this.status = status;
-    }
-
-    public Integer getSort() {
-        return sort;
-    }
-
-    public void setSort(Integer sort) {
-        this.sort = sort;
-    }
-
-    public String getCreatedBy() {
-        return createdBy;
-    }
-
-    public void setCreatedBy(String createdBy) {
-        this.createdBy = createdBy;
-    }
-
-    public String getUpdatedBy() {
-        return updatedBy;
-    }
-
-    public void setUpdatedBy(String updatedBy) {
-        this.updatedBy = updatedBy;
+    public void setTraceId(String traceId) {
+        this.traceId = traceId;
     }
 
     public LocalDateTime getCreatedAt() {

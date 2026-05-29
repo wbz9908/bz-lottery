@@ -7,7 +7,7 @@ spring:
   datasource:
     url: ${LOTTERY_DB_URL:jdbc:postgresql://localhost:5432/lottery-platform}
     username: ${LOTTERY_DB_USERNAME:postgres}
-    password: ${LOTTERY_DB_PASSWORD:123456}
+    password: ${LOTTERY_DB_PASSWORD:}
     driver-class-name: org.postgresql.Driver
   threads:
     virtual:

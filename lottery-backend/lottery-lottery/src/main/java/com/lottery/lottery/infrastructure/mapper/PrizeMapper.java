@@ -1,7 +1,7 @@
 package com.lottery.lottery.infrastructure.mapper;
 
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
-import com.lottery.lottery.domain.entity.Prize;
+import com.lottery.domain.entity.Prize;
 import org.apache.ibatis.annotations.Param;
 import org.apache.ibatis.annotations.Update;
 

@@ -56,7 +56,7 @@ public class GatewayAuthFilter implements org.springframework.cloud.gateway.filt
 
         // 远程校验：向 lottery-user 发起 token 校验请求，所有错误（网络/超时/4xx/5xx）统一转为 401
         return webClient.get()
-                .uri("http://lottery-user/api/user/auth/me")
+                .uri("lb://lottery-user/api/user/auth/me")
                 .header(authProperties.getTokenName(), token)
                 .retrieve()
                 .toBodilessEntity()

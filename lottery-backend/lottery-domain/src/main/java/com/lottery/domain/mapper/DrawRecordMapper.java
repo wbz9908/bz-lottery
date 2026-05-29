@@ -1,7 +1,7 @@
-package com.lottery.ai.infrastructure.mapper;
+package com.lottery.domain.mapper;
 
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
-import com.lottery.ai.domain.entity.DrawRecord;
+import com.lottery.domain.entity.DrawRecord;
 
 public interface DrawRecordMapper extends BaseMapper<DrawRecord> {
 }

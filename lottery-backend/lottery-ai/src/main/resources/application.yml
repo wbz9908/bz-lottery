@@ -7,7 +7,7 @@ spring:
   datasource:
     url: ${LOTTERY_DB_URL:jdbc:postgresql://localhost:5432/lottery-platform}
     username: ${LOTTERY_DB_USERNAME:postgres}
-    password: ${LOTTERY_DB_PASSWORD:123456}
+    password: ${LOTTERY_DB_PASSWORD:}
     driver-class-name: org.postgresql.Driver
   threads:
     virtual:
@@ -57,7 +57,7 @@ logging:
 ai:
   glm:
     enabled: ${GLM_ENABLED:true}
-    api-key: ${GLM_API_KEY:fadcf7b4ea4ac3b5cb6903e577a73195.AMhZbhAvIMJ6ZF6t}
+    api-key: ${GLM_API_KEY:}
     model: ${GLM_MODEL:glm-5.1}
     temperature: ${GLM_TEMPERATURE:0.6}
     max-tokens: ${GLM_MAX_TOKENS:1024}

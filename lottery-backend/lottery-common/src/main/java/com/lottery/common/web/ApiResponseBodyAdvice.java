@@ -5,12 +5,16 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.lottery.common.response.ApiResponse;
 import org.springframework.core.MethodParameter;
 import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageConverter;
 import org.springframework.http.converter.StringHttpMessageConverter;
 import org.springframework.http.server.ServerHttpRequest;
 import org.springframework.http.server.ServerHttpResponse;
 import org.springframework.web.bind.annotation.ControllerAdvice;
 import org.springframework.web.servlet.mvc.method.annotation.ResponseBodyAdvice;
+
+import java.lang.reflect.ParameterizedType;
+import java.lang.reflect.Type;
 
 @ControllerAdvice
 public class ApiResponseBodyAdvice implements ResponseBodyAdvice<Object> {
@@ -23,7 +27,28 @@ public class ApiResponseBodyAdvice implements ResponseBodyAdvice<Object> {
 
     @Override
     public boolean supports(MethodParameter returnType, Class<? extends HttpMessageConverter<?>> converterType) {
-        return !ApiResponse.class.isAssignableFrom(returnType.getParameterType());
+        Class<?> parameterType = returnType.getParameterType();
+        if (ApiResponse.class.isAssignableFrom(parameterType)) {
+            return false;
+        }
+        if (ResponseEntity.class.isAssignableFrom(parameterType)) {
+            return !isApiResponseInnerType(returnType);
+        }
+        return true;
+    }
+
+    private boolean isApiResponseInnerType(MethodParameter returnType) {
+        Type genericType = returnType.getGenericParameterType();
+        if (genericType instanceof ParameterizedType pt && pt.getActualTypeArguments().length == 1) {
+            Type typeArg = pt.getActualTypeArguments()[0];
+            if (typeArg instanceof Class<?> innerClass) {
+                return ApiResponse.class.isAssignableFrom(innerClass);
+            }
+            if (typeArg instanceof ParameterizedType innerPt && innerPt.getRawType() instanceof Class<?> innerClass) {
+                return ApiResponse.class.isAssignableFrom(innerClass);
+            }
+        }
+        return false;
     }
 
     @Override

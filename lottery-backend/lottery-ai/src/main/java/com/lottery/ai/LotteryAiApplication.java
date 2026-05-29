@@ -4,8 +4,8 @@ import org.mybatis.spring.annotation.MapperScan;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 
-@MapperScan("com.lottery.ai.infrastructure.mapper")
-@SpringBootApplication
+@MapperScan({"com.lottery.ai.infrastructure.mapper", "com.lottery.domain.mapper"})
+@SpringBootApplication(scanBasePackages = "com.lottery")
 public class LotteryAiApplication {
 
     public static void main(String[] args) {

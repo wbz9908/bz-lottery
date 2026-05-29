@@ -1,7 +1,7 @@
-package com.lottery.award.infrastructure.mapper;
+package com.lottery.domain.mapper;
 
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
-import com.lottery.award.domain.entity.Prize;
+import com.lottery.domain.entity.Prize;
 
 public interface PrizeMapper extends BaseMapper<Prize> {
 }

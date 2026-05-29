@@ -1,7 +1,6 @@
 package com.lottery.gateway.config;
 
 import com.lottery.gateway.support.TraceIdConstants;
-import org.slf4j.MDC;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpMethod;
@@ -36,7 +35,7 @@ public class GatewayReactiveConfiguration {
         return new CorsWebFilter(source);
     }
 
-    // 三重 trace ID 传播：响应头（客户端可读）→ Reactor Context（响应式链内传播）→ MDC（日志线程绑定）
+    // trace ID 传播：响应头（客户端可读）+ Reactor Context（响应式链内传播）
     @Bean
     public WebFilter traceWebFilter() {
         return (exchange, chain) -> {
@@ -45,9 +44,7 @@ public class GatewayReactiveConfiguration {
                     .orElseGet(() -> UUID.randomUUID().toString().replace("-", ""));
             exchange.getResponse().getHeaders().add(TraceIdConstants.TRACE_ID, traceId);
             return chain.filter(exchange)
-                    .contextWrite(context -> context.put(TraceIdConstants.MDC_TRACE_ID, traceId))
-                    .doFirst(() -> MDC.put(TraceIdConstants.MDC_TRACE_ID, traceId))
-                    .doFinally(signalType -> MDC.remove(TraceIdConstants.MDC_TRACE_ID));
+                    .contextWrite(context -> context.put(TraceIdConstants.MDC_TRACE_ID, traceId));
         };
     }
 }

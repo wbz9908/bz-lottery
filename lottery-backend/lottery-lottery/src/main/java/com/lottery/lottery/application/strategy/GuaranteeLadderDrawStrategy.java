@@ -1,7 +1,7 @@
 package com.lottery.lottery.application.strategy;
 
 import com.lottery.common.exception.BusinessException;
-import com.lottery.lottery.domain.entity.Prize;
+import com.lottery.domain.entity.Prize;
 import org.springframework.stereotype.Component;
 
 import java.util.List;

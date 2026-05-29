@@ -2,8 +2,8 @@ package com.lottery.award.application.service;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.lottery.award.application.dto.PrizeView;
-import com.lottery.award.domain.entity.Prize;
-import com.lottery.award.infrastructure.mapper.PrizeMapper;
+import com.lottery.domain.entity.Prize;
+import com.lottery.domain.mapper.PrizeMapper;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
