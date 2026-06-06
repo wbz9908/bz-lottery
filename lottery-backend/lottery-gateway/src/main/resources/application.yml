@@ -23,6 +23,15 @@ spring:
     sentinel:
       eager: false
     gateway:
+      server:
+        webflux:
+          routes:
+            - id: lottery-user-static
+              uri: http://user:9101
+              predicates:
+                - Path=/lottery-user/**
+              filters:
+                - StripPrefix=1
       discovery:
         locator:
           enabled: true
