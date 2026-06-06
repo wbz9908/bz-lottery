@@ -9,38 +9,33 @@ ENV_FILE="$PROD_DIR/env/prod.env"
 ENV_EXAMPLE_FILE="$PROD_DIR/env/prod.env.example"
 FRONTEND_DIST="$DEPLOY_ROOT/artifacts/frontend/dist"
 NGINX_HTML="$PROD_DIR/conf/nginx/html"
-REDIS_IMAGE_ARCHIVE="$DEPLOY_ROOT/artifacts/images/redis-7-alpine.tar.gz"
+IMAGE_ARCHIVE_DIR="$DEPLOY_ROOT/artifacts/images"
 
-read_env_value() {
-  key="$1"
-  file="$2"
-  if [ -f "$file" ]; then
-    sed -n "s/^${key}=//p" "$file" | tail -n 1
-  fi
-}
-
-ensure_redis_image() {
-  if [ -f "$REDIS_IMAGE_ARCHIVE" ]; then
-    echo "Loading redis:7-alpine from release bundle."
-    docker load -i "$REDIS_IMAGE_ARCHIVE"
-    export REDIS_IMAGE_TAG=7-alpine
-    return 0
+load_runtime_images() {
+  if [ ! -d "$IMAGE_ARCHIVE_DIR" ]; then
+    echo "Runtime image archive directory not found: $IMAGE_ARCHIVE_DIR" >&2
+    exit 1
   fi
 
-  current_tag=$(read_env_value REDIS_IMAGE_TAG "$ENV_FILE")
-  current_tag=${current_tag:-7-alpine}
+  loaded_count=0
+  for archive in "$IMAGE_ARCHIVE_DIR"/*.tar.gz; do
+    if [ ! -f "$archive" ]; then
+      continue
+    fi
 
-  if docker pull "redis:${current_tag}"; then
-    return 0
+    echo "Loading runtime image from release bundle: $(basename "$archive")"
+    docker load -i "$archive"
+    loaded_count=$((loaded_count + 1))
+  done
+
+  if [ "$loaded_count" -eq 0 ]; then
+    echo "No runtime image archives found in $IMAGE_ARCHIVE_DIR" >&2
+    exit 1
   fi
 
-  if [ "$current_tag" = "7-alpine" ]; then
-    return 1
-  fi
-
-  echo "redis:${current_tag} is unavailable from the current registry mirror. Falling back to redis:7-alpine."
+  export GATEWAY_IMAGE=lottery-platform/gateway:latest
+  export POSTGRES_IMAGE_TAG=17-alpine
   export REDIS_IMAGE_TAG=7-alpine
-  docker pull redis:7-alpine
 }
 
 if [ ! -f "$ENV_FILE" ]; then
@@ -60,5 +55,5 @@ fi
 mkdir -p "$PROD_DIR/data/nginx/logs" "$PROD_DIR/data/postgres" "$PROD_DIR/data/redis"
 
 cd "$PROD_DIR"
-ensure_redis_image
-docker compose --env-file "$ENV_FILE" -f compose/compose.prod.yml up -d --build postgres redis gateway nginx
+load_runtime_images
+docker compose --env-file "$ENV_FILE" -f compose/compose.prod.yml up -d --no-build postgres redis gateway nginx
