@@ -58,7 +58,7 @@ services:
       - lottery-prod-net
 
   redis:
-    image: redis:${REDIS_IMAGE_TAG:-7.4-alpine}
+    image: redis:${REDIS_IMAGE_TAG:-7-alpine}
     container_name: lottery-prod-redis
     restart: unless-stopped
     command: [ "redis-server", "--appendonly", "yes" ]
