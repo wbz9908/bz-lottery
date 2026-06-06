@@ -34,6 +34,7 @@ load_runtime_images() {
   fi
 
   export GATEWAY_IMAGE=lottery-platform/gateway:latest
+  export USER_IMAGE=lottery-platform/user:latest
   export POSTGRES_IMAGE_TAG=17-alpine
   export REDIS_IMAGE_TAG=7-alpine
 }
@@ -56,4 +57,4 @@ mkdir -p "$PROD_DIR/data/nginx/logs" "$PROD_DIR/data/postgres" "$PROD_DIR/data/r
 
 cd "$PROD_DIR"
 load_runtime_images
-docker compose --env-file "$ENV_FILE" -f compose/compose.prod.yml up -d --no-build postgres redis gateway nginx
+docker compose --env-file "$ENV_FILE" -f compose/compose.prod.yml up -d --no-build postgres redis user gateway nginx

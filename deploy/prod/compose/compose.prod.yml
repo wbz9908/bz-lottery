@@ -39,6 +39,32 @@ services:
     depends_on:
       - redis
       - postgres
+      - user
+    networks:
+      - lottery-prod-net
+
+  user:
+    image: ${USER_IMAGE:-lottery-platform/user:latest}
+    build:
+      context: ../../..
+      dockerfile: deploy/prod/docker/java-service.Dockerfile
+      args:
+        JAR_FILE: artifacts/backend/lottery-user.jar
+    container_name: lottery-prod-user
+    restart: unless-stopped
+    environment:
+      SPRING_PROFILES_ACTIVE: ${SPRING_PROFILES_ACTIVE:-prod}
+      SPRING_CLOUD_NACOS_DISCOVERY_ENABLED: ${NACOS_DISCOVERY_ENABLED:-false}
+      LOTTERY_DB_URL: ${LOTTERY_DB_URL}
+      LOTTERY_DB_USERNAME: ${LOTTERY_DB_USERNAME}
+      LOTTERY_DB_PASSWORD: ${LOTTERY_DB_PASSWORD}
+      REDIS_HOST: ${REDIS_HOST:-redis}
+      REDIS_PORT: ${REDIS_PORT:-6379}
+      NACOS_NAMESPACE: ${NACOS_NAMESPACE:-public}
+      NACOS_SERVER_ADDR: ${NACOS_SERVER_ADDR:-}
+    depends_on:
+      - redis
+      - postgres
     networks:
       - lottery-prod-net
 
@@ -50,6 +76,7 @@ services:
       POSTGRES_DB: ${POSTGRES_DB:-lottery-platform}
       POSTGRES_USER: ${POSTGRES_USER:-postgres}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      PGDATA: /var/lib/postgresql/data/pgdata
       TZ: ${CONTAINER_TZ:-Asia/Shanghai}
       PGTZ: ${CONTAINER_TZ:-Asia/Shanghai}
     volumes:
