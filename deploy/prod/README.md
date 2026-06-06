@@ -1,6 +1,13 @@
 # prod 目录草图说明
 
-`deploy/prod` 用于放置未来生产部署相关的草图文件。它现在仍然是“生产部署设计区”，不是可以直接原样上线的最终方案。
+`deploy/prod` 用于放置生产部署相关文件。当前已经支持第一版 GitHub Actions 发布：
+
+- GitHub Actions 构建前端静态资源。
+- GitHub Actions 构建 `lottery-gateway` jar。
+- 上传 release bundle 到云服务器。
+- 服务器通过 Docker Compose 启动 Nginx、Gateway、PostgreSQL、Redis。
+
+第一版目标是先把网站公开跑起来。完整微服务栈、域名 HTTPS、监控和备份可以在后续迭代继续补。
 
 ## 当前定位
 
@@ -92,6 +99,45 @@ prod/env/prod.env.example
 
 `scripts/` 是生产部署草图的入口层。目前仍是占位版脚本，后续可以逐步收敛为真正可执行的上线和回滚流程。
 
+## GitHub Actions 发布
+
+Workflow 文件：
+
+```text
+.github/workflows/deploy-prod.yml
+```
+
+需要在 GitHub 仓库中配置这些 Secrets：
+
+- `ALIYUN_HOST`：ECS 公网 IP 或域名。
+- `ALIYUN_USER`：SSH 用户，建议使用非 root 部署用户。
+- `ALIYUN_SSH_KEY`：部署用户私钥。
+- `ALIYUN_SSH_PORT`：SSH 端口，默认可填 `22`。
+- `ALIYUN_DEPLOY_DIR`：部署目录，例如 `/opt/bz-lottery`。
+
+服务器需要提前安装：
+
+```bash
+docker --version
+docker compose version
+```
+
+首次发布前创建目录：
+
+```bash
+sudo mkdir -p /opt/bz-lottery
+sudo chown -R <deploy-user>:<deploy-user> /opt/bz-lottery
+```
+
+发布后目录结构：
+
+```text
+/opt/bz-lottery
+├─ packages/                 # GitHub Actions 上传的 tgz 包
+├─ releases/<commit-sha>/     # 解压后的每次发布版本
+└─ current -> releases/<sha>  # 当前激活版本
+```
+
 ## 当前建议
 
 第一版生产环境建议尽量收敛最小上线范围，不要把本地联调用到的所有服务一次性搬上公网。
@@ -101,7 +147,9 @@ prod/env/prod.env.example
 - Nginx
 - 前端静态资源
 - Gateway
-- 真正需要对外提供服务的业务模块
+- PostgreSQL
+- Redis
+- 后续真正需要对外提供服务的业务模块
 
 需要谨慎引入的通常是：
 
