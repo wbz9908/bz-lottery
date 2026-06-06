@@ -1,6 +1,6 @@
 ---
 category: commit
-version: "1.1.0"
+version: "1.2.0"
 last_updated: "2026-06-06"
 ---
 
@@ -21,13 +21,16 @@ last_updated: "2026-06-06"
 
 - 建议 `type(scope): subject`；
 - 常用类型：`feat`、`fix`、`refactor`、`docs`、`test`、`chore`。
-- 当 Codex 实际参与实现、文档编写或提交操作时，提交信息末尾追加协作署名：
+- 当 AI 工具实际参与实现、文档编写、排查问题或提交操作时，在提交信息末尾追加对应的协作署名：
 
 ```text
 Co-authored-by: Codex <noreply@openai.com>
+Co-authored-by: Claude <noreply@anthropic.com>
 ```
 
-- 如果提交由其他 AI 工具实质参与，可追加对应工具的 `Co-authored-by` 署名；仅在工具实际参与时添加。
+- 多个 AI 或真人共同参与同一个提交时，可以追加多行 `Co-authored-by`。
+- 仅在对应工具实际参与该提交时添加署名；不要为了展示效果给未参与的工具署名。
+- 若工具没有官方或稳定的 noreply 邮箱，可使用项目约定邮箱，但 GitHub Contributors 是否展示取决于 GitHub 是否能识别该邮箱。
 
 1. 提交粒度：
 
@@ -63,6 +66,16 @@ Co-authored-by: Codex <noreply@openai.com>
 5. 是否给出风险和回滚路径。
 6. AI 参与的提交是否补充对应 `Co-authored-by` 署名。
 
+## AI 协作署名参考
+
+| 工具 | 建议署名 | 说明 |
+|------|----------|------|
+| Codex | `Co-authored-by: Codex <noreply@openai.com>` | 用于 Codex 实际参与的提交 |
+| Claude | `Co-authored-by: Claude <noreply@anthropic.com>` | 用于 Claude / Claude Code 实际参与的提交 |
+| Cursor | `Co-authored-by: Cursor <noreply@cursor.com>` | 如项目需要展示 Cursor 参与，可采用项目约定 |
+| GitHub Copilot | `Co-authored-by: GitHub Copilot <copilot@github.com>` | 如提交主要由 Copilot 辅助完成，可采用项目约定 |
+| 其他 AI | `Co-authored-by: Tool Name <noreply@example.com>` | 先确认工具是否有官方推荐邮箱；没有则使用团队约定 |
+
 ## 示例
 
 ```text
@@ -74,4 +87,5 @@ docs(frontend): 补充前端环境变量配置说明
 feat(frontend): 新增双端抽奖 UI
 
 Co-authored-by: Codex <noreply@openai.com>
+Co-authored-by: Claude <noreply@anthropic.com>
 ```
