@@ -1,5 +1,5 @@
-﻿import {createRouter, createWebHistory} from 'vue-router'
-import {routeCatalog, staticRoutes} from './route-table'
+import {createRouter, createWebHistory} from 'vue-router'
+import {adminRouteCatalog, appRouteCatalog, routeCatalog, staticRoutes} from './route-table'
 import {ensureSession, hasMenu, hasRole, hasToken, markDynamicRoutes, sessionState} from '../stores/session'
 
 const router = createRouter({
@@ -13,10 +13,17 @@ function installDynamicRoutes() {
     }
 
     const names = []
-    routeCatalog
+    adminRouteCatalog
         .filter((route) => hasRole(route.meta.roles ?? []) && hasMenu(route.meta.menuCode))
         .forEach((route) => {
-            router.addRoute('workspace', route)
+            router.addRoute('admin', route)
+            names.push(route.name)
+        })
+
+    appRouteCatalog
+        .filter((route) => hasRole(route.meta.roles ?? []) && hasMenu(route.meta.menuCode))
+        .forEach((route) => {
+            router.addRoute('mobileApp', route)
             names.push(route.name)
         })
 
@@ -24,8 +31,21 @@ function installDynamicRoutes() {
 }
 
 function resolveHomeRoute() {
-    const firstRoute = routeCatalog.find((route) => hasRole(route.meta.roles ?? []) && hasMenu(route.meta.menuCode))
-    return firstRoute ? `/workspace/${firstRoute.path}` : '/login'
+    const firstAdminRoute = adminRouteCatalog.find((route) => hasRole(route.meta.roles ?? []) && hasMenu(route.meta.menuCode))
+    if (firstAdminRoute) {
+        return `/admin/${firstAdminRoute.path}`
+    }
+
+    const firstAppRoute = appRouteCatalog.find((route) => hasRole(route.meta.roles ?? []) && hasMenu(route.meta.menuCode))
+    return firstAppRoute ? `/app/${firstAppRoute.path}` : '/login'
+}
+
+function resolveScopedHomeRoute(scope) {
+    const catalog = scope === 'admin' ? adminRouteCatalog : appRouteCatalog
+    const basePath = scope === 'admin' ? '/admin' : '/app'
+    const firstRoute = catalog.find((route) => hasRole(route.meta.roles ?? []) && hasMenu(route.meta.menuCode))
+
+    return firstRoute ? `${basePath}/${firstRoute.path}` : resolveHomeRoute()
 }
 
 router.beforeEach(async (to) => {
@@ -47,6 +67,12 @@ router.beforeEach(async (to) => {
 
     if (loggedIn && !sessionState.dynamicRoutesReady) {
         installDynamicRoutes()
+        if (to.fullPath === '/admin') {
+            return resolveScopedHomeRoute('admin')
+        }
+        if (to.fullPath === '/app') {
+            return resolveScopedHomeRoute('app')
+        }
         return to.fullPath === '/workspace' ? resolveHomeRoute() : {...to, replace: true}
     }
 
@@ -58,6 +84,14 @@ router.beforeEach(async (to) => {
         return resolveHomeRoute()
     }
 
+    if (loggedIn && to.fullPath === '/admin') {
+        return resolveScopedHomeRoute('admin')
+    }
+
+    if (loggedIn && to.fullPath === '/app') {
+        return resolveScopedHomeRoute('app')
+    }
+
     if (loggedIn && to.fullPath === '/workspace') {
         return resolveHomeRoute()
     }
@@ -65,5 +99,5 @@ router.beforeEach(async (to) => {
     return true
 })
 
-export {routeCatalog, resolveHomeRoute}
+export {adminRouteCatalog, appRouteCatalog, routeCatalog, resolveHomeRoute, resolveScopedHomeRoute}
 export default router
