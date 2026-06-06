@@ -1,0 +1,91 @@
+name: Deploy Production
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+    paths:
+      - '.github/workflows/deploy-prod.yml'
+      - 'deploy/prod/**'
+      - 'lottery-backend/**'
+      - 'lottery-frontend/**'
+
+concurrency:
+  group: deploy-prod
+  cancel-in-progress: false
+
+jobs:
+  build-and-deploy:
+    name: Build and deploy to ECS
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '25'
+          cache: maven
+
+      - name: Build gateway
+        working-directory: lottery-backend
+        run: mvn -B -pl lottery-gateway -am package
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: lottery-frontend/package-lock.json
+
+      - name: Build frontend
+        working-directory: lottery-frontend
+        run: |
+          npm ci
+          npm run build
+
+      - name: Create release bundle
+        run: |
+          set -euo pipefail
+          rm -rf release bz-lottery-release.tgz
+          mkdir -p release/artifacts/backend release/artifacts/frontend
+          cp lottery-backend/lottery-gateway/target/lottery-gateway-*.jar release/artifacts/backend/lottery-gateway.jar
+          cp -R lottery-frontend/dist release/artifacts/frontend/dist
+          mkdir -p release/deploy
+          cp -R deploy/prod release/deploy/prod
+          tar -czf bz-lottery-release.tgz -C release .
+
+      - name: Prepare SSH
+        run: |
+          set -euo pipefail
+          mkdir -p ~/.ssh
+          printf '%s\n' "${{ secrets.ALIYUN_SSH_KEY }}" > ~/.ssh/aliyun_key
+          chmod 600 ~/.ssh/aliyun_key
+          ssh-keyscan -p "${{ secrets.ALIYUN_SSH_PORT || 22 }}" "${{ secrets.ALIYUN_HOST }}" >> ~/.ssh/known_hosts
+
+      - name: Upload release bundle
+        run: |
+          set -euo pipefail
+          ssh -i ~/.ssh/aliyun_key -p "${{ secrets.ALIYUN_SSH_PORT || 22 }}" "${{ secrets.ALIYUN_USER }}@${{ secrets.ALIYUN_HOST }}" \
+            "mkdir -p '${{ secrets.ALIYUN_DEPLOY_DIR }}/packages'"
+          scp -i ~/.ssh/aliyun_key -P "${{ secrets.ALIYUN_SSH_PORT || 22 }}" bz-lottery-release.tgz \
+            "${{ secrets.ALIYUN_USER }}@${{ secrets.ALIYUN_HOST }}:${{ secrets.ALIYUN_DEPLOY_DIR }}/packages/${{ github.sha }}.tgz"
+
+      - name: Activate release
+        run: |
+          set -euo pipefail
+          ssh -i ~/.ssh/aliyun_key -p "${{ secrets.ALIYUN_SSH_PORT || 22 }}" "${{ secrets.ALIYUN_USER }}@${{ secrets.ALIYUN_HOST }}" <<'EOF'
+          set -euo pipefail
+          DEPLOY_DIR='${{ secrets.ALIYUN_DEPLOY_DIR }}'
+          RELEASE_DIR="$DEPLOY_DIR/releases/${{ github.sha }}"
+          mkdir -p "$RELEASE_DIR"
+          tar -xzf "$DEPLOY_DIR/packages/${{ github.sha }}.tgz" -C "$RELEASE_DIR"
+          ln -sfn "$RELEASE_DIR" "$DEPLOY_DIR/current"
+          cd "$DEPLOY_DIR/current/deploy/prod"
+          chmod +x scripts/deploy-prod.sh
+          DEPLOY_ROOT="$DEPLOY_DIR/current" ./scripts/deploy-prod.sh
+          EOF

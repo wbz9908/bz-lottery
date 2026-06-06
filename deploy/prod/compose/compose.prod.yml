@@ -19,10 +19,17 @@ services:
 
   gateway:
     image: ${GATEWAY_IMAGE:-lottery-platform/gateway:latest}
+    build:
+      context: ../../..
+      dockerfile: deploy/prod/docker/java-service.Dockerfile
+      args:
+        JAR_FILE: artifacts/backend/lottery-gateway.jar
     container_name: lottery-prod-gateway
     restart: unless-stopped
     environment:
       SPRING_PROFILES_ACTIVE: ${SPRING_PROFILES_ACTIVE:-prod}
+      SPRING_CLOUD_NACOS_DISCOVERY_ENABLED: ${NACOS_DISCOVERY_ENABLED:-false}
+      SPRING_CLOUD_GATEWAY_DISCOVERY_LOCATOR_ENABLED: ${GATEWAY_DISCOVERY_ENABLED:-false}
       LOTTERY_DB_URL: ${LOTTERY_DB_URL}
       LOTTERY_DB_USERNAME: ${LOTTERY_DB_USERNAME}
       LOTTERY_DB_PASSWORD: ${LOTTERY_DB_PASSWORD}
