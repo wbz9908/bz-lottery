@@ -51,12 +51,23 @@ jobs:
       - name: Create release bundle
         run: |
           set -euo pipefail
+          GATEWAY_IMAGE=lottery-platform/gateway:latest
+          NGINX_IMAGE=nginx:1.29-alpine
+          POSTGRES_IMAGE=postgres:17-alpine
+          REDIS_IMAGE=redis:7-alpine
           rm -rf release bz-lottery-release.tgz
           mkdir -p release/artifacts/backend release/artifacts/frontend release/artifacts/images
           cp lottery-backend/lottery-gateway/target/lottery-gateway-*.jar release/artifacts/backend/lottery-gateway.jar
           cp -R lottery-frontend/dist release/artifacts/frontend/dist
-          docker pull redis:7-alpine
-          docker save redis:7-alpine | gzip -c > release/artifacts/images/redis-7-alpine.tar.gz
+          docker pull "$NGINX_IMAGE"
+          docker pull "$POSTGRES_IMAGE"
+          docker pull "$REDIS_IMAGE"
+          docker build -t "$GATEWAY_IMAGE" -f deploy/prod/docker/java-service.Dockerfile \
+            --build-arg JAR_FILE=release/artifacts/backend/lottery-gateway.jar .
+          docker save "$GATEWAY_IMAGE" | gzip -c > release/artifacts/images/gateway-latest.tar.gz
+          docker save "$NGINX_IMAGE" | gzip -c > release/artifacts/images/nginx-1.29-alpine.tar.gz
+          docker save "$POSTGRES_IMAGE" | gzip -c > release/artifacts/images/postgres-17-alpine.tar.gz
+          docker save "$REDIS_IMAGE" | gzip -c > release/artifacts/images/redis-7-alpine.tar.gz
           mkdir -p release/deploy
           cp -R deploy/prod release/deploy/prod
           tar -czf bz-lottery-release.tgz -C release .
