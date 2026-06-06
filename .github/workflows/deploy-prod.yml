@@ -52,9 +52,11 @@ jobs:
         run: |
           set -euo pipefail
           rm -rf release bz-lottery-release.tgz
-          mkdir -p release/artifacts/backend release/artifacts/frontend
+          mkdir -p release/artifacts/backend release/artifacts/frontend release/artifacts/images
           cp lottery-backend/lottery-gateway/target/lottery-gateway-*.jar release/artifacts/backend/lottery-gateway.jar
           cp -R lottery-frontend/dist release/artifacts/frontend/dist
+          docker pull redis:7-alpine
+          docker save redis:7-alpine | gzip -c > release/artifacts/images/redis-7-alpine.tar.gz
           mkdir -p release/deploy
           cp -R deploy/prod release/deploy/prod
           tar -czf bz-lottery-release.tgz -C release .

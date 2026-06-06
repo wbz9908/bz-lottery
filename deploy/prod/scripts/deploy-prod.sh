@@ -9,6 +9,7 @@ ENV_FILE="$PROD_DIR/env/prod.env"
 ENV_EXAMPLE_FILE="$PROD_DIR/env/prod.env.example"
 FRONTEND_DIST="$DEPLOY_ROOT/artifacts/frontend/dist"
 NGINX_HTML="$PROD_DIR/conf/nginx/html"
+REDIS_IMAGE_ARCHIVE="$DEPLOY_ROOT/artifacts/images/redis-7-alpine.tar.gz"
 
 read_env_value() {
   key="$1"
@@ -19,6 +20,13 @@ read_env_value() {
 }
 
 ensure_redis_image() {
+  if [ -f "$REDIS_IMAGE_ARCHIVE" ]; then
+    echo "Loading redis:7-alpine from release bundle."
+    docker load -i "$REDIS_IMAGE_ARCHIVE"
+    export REDIS_IMAGE_TAG=7-alpine
+    return 0
+  fi
+
   current_tag=$(read_env_value REDIS_IMAGE_TAG "$ENV_FILE")
   current_tag=${current_tag:-7-alpine}
 
