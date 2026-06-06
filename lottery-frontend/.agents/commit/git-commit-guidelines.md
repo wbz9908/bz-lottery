@@ -1,7 +1,7 @@
 ---
 category: commit
-version: "1.0.0"
-last_updated: "2026-05-29"
+version: "1.1.0"
+last_updated: "2026-06-06"
 ---
 
 # 提交规范
@@ -21,6 +21,13 @@ last_updated: "2026-05-29"
 
 - 建议 `type(scope): subject`；
 - 常用类型：`feat`、`fix`、`refactor`、`docs`、`test`、`chore`。
+- 当 Codex 实际参与实现、文档编写或提交操作时，提交信息末尾追加协作署名：
+
+```text
+Co-authored-by: Codex <noreply@openai.com>
+```
+
+- 如果提交由其他 AI 工具实质参与，可追加对应工具的 `Co-authored-by` 署名；仅在工具实际参与时添加。
 
 1. 提交粒度：
 
@@ -54,6 +61,7 @@ last_updated: "2026-05-29"
 3. 是否包含无关文件或临时文件（如 `.env.local`、`node_modules`）。
 4. 是否附带必要验证说明。
 5. 是否给出风险和回滚路径。
+6. AI 参与的提交是否补充对应 `Co-authored-by` 署名。
 
 ## 示例
 
@@ -62,4 +70,8 @@ feat(frontend): 新增抽奖页面及抽奖动画
 fix(ui): 修复奖品列表分页切换后数据不刷新
 refactor(api): 统一错误拦截和登录态检测
 docs(frontend): 补充前端环境变量配置说明
+
+feat(frontend): 新增双端抽奖 UI
+
+Co-authored-by: Codex <noreply@openai.com>
 ```
