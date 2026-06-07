@@ -57,4 +57,5 @@ mkdir -p "$PROD_DIR/data/nginx/logs" "$PROD_DIR/data/postgres" "$PROD_DIR/data/r
 
 cd "$PROD_DIR"
 load_runtime_images
-docker compose --env-file "$ENV_FILE" -f compose/compose.prod.yml up -d --no-build postgres redis user gateway nginx
+docker compose --env-file "$ENV_FILE" -f compose/compose.prod.yml up -d --no-build postgres redis
+docker compose --env-file "$ENV_FILE" -f compose/compose.prod.yml up -d --no-build --force-recreate user gateway nginx
