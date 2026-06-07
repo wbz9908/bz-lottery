@@ -32,6 +32,24 @@ spring:
                 - Path=/lottery-user/**
               filters:
                 - StripPrefix=1
+            - id: lottery-award-static
+              uri: http://award:9104
+              predicates:
+                - Path=/lottery-award/**
+              filters:
+                - StripPrefix=1
+            - id: lottery-lottery-static
+              uri: http://lottery:9103
+              predicates:
+                - Path=/lottery-lottery/**
+              filters:
+                - StripPrefix=1
+            - id: lottery-ai-static
+              uri: http://ai:9108
+              predicates:
+                - Path=/lottery-ai/**
+              filters:
+                - StripPrefix=1
       discovery:
         locator:
           enabled: true
