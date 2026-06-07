@@ -40,6 +40,9 @@ services:
       - redis
       - postgres
       - user
+      - award
+      - lottery
+      - ai
     networks:
       - lottery-prod-net
 
@@ -64,6 +67,81 @@ services:
       NACOS_SERVER_ADDR: ${NACOS_SERVER_ADDR:-}
     depends_on:
       - redis
+      - postgres
+    networks:
+      - lottery-prod-net
+
+  award:
+    image: ${AWARD_IMAGE:-lottery-platform/award:latest}
+    build:
+      context: ../../..
+      dockerfile: deploy/prod/docker/java-service.Dockerfile
+      args:
+        JAR_FILE: artifacts/backend/lottery-award.jar
+    container_name: lottery-prod-award
+    restart: unless-stopped
+    environment:
+      SPRING_PROFILES_ACTIVE: ${SPRING_PROFILES_ACTIVE:-prod}
+      SPRING_CLOUD_NACOS_DISCOVERY_ENABLED: ${NACOS_DISCOVERY_ENABLED:-false}
+      LOTTERY_DB_URL: ${LOTTERY_DB_URL}
+      LOTTERY_DB_USERNAME: ${LOTTERY_DB_USERNAME}
+      LOTTERY_DB_PASSWORD: ${LOTTERY_DB_PASSWORD}
+      REDIS_HOST: ${REDIS_HOST:-redis}
+      REDIS_PORT: ${REDIS_PORT:-6379}
+      NACOS_NAMESPACE: ${NACOS_NAMESPACE:-public}
+      NACOS_SERVER_ADDR: ${NACOS_SERVER_ADDR:-}
+    depends_on:
+      - redis
+      - postgres
+    networks:
+      - lottery-prod-net
+
+  lottery:
+    image: ${LOTTERY_IMAGE:-lottery-platform/lottery:latest}
+    build:
+      context: ../../..
+      dockerfile: deploy/prod/docker/java-service.Dockerfile
+      args:
+        JAR_FILE: artifacts/backend/lottery-lottery.jar
+    container_name: lottery-prod-lottery
+    restart: unless-stopped
+    environment:
+      SPRING_PROFILES_ACTIVE: ${SPRING_PROFILES_ACTIVE:-prod}
+      SPRING_CLOUD_NACOS_DISCOVERY_ENABLED: ${NACOS_DISCOVERY_ENABLED:-false}
+      LOTTERY_DB_URL: ${LOTTERY_DB_URL}
+      LOTTERY_DB_USERNAME: ${LOTTERY_DB_USERNAME}
+      LOTTERY_DB_PASSWORD: ${LOTTERY_DB_PASSWORD}
+      REDIS_HOST: ${REDIS_HOST:-redis}
+      REDIS_PORT: ${REDIS_PORT:-6379}
+      NACOS_NAMESPACE: ${NACOS_NAMESPACE:-public}
+      NACOS_SERVER_ADDR: ${NACOS_SERVER_ADDR:-}
+    depends_on:
+      - redis
+      - postgres
+    networks:
+      - lottery-prod-net
+
+  ai:
+    image: ${AI_IMAGE:-lottery-platform/ai:latest}
+    build:
+      context: ../../..
+      dockerfile: deploy/prod/docker/java-service.Dockerfile
+      args:
+        JAR_FILE: artifacts/backend/lottery-ai.jar
+    container_name: lottery-prod-ai
+    restart: unless-stopped
+    environment:
+      SPRING_PROFILES_ACTIVE: ${SPRING_PROFILES_ACTIVE:-prod}
+      SPRING_CLOUD_NACOS_DISCOVERY_ENABLED: ${NACOS_DISCOVERY_ENABLED:-false}
+      LOTTERY_DB_URL: ${LOTTERY_DB_URL}
+      LOTTERY_DB_USERNAME: ${LOTTERY_DB_USERNAME}
+      LOTTERY_DB_PASSWORD: ${LOTTERY_DB_PASSWORD}
+      NACOS_NAMESPACE: ${NACOS_NAMESPACE:-public}
+      NACOS_SERVER_ADDR: ${NACOS_SERVER_ADDR:-}
+      GLM_ENABLED: ${GLM_ENABLED:-true}
+      GLM_API_KEY: ${GLM_API_KEY:-}
+      GLM_MODEL: ${GLM_MODEL:-glm-5.1}
+    depends_on:
       - postgres
     networks:
       - lottery-prod-net

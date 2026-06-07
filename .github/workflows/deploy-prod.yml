@@ -33,7 +33,7 @@ jobs:
 
       - name: Build backend services
         working-directory: lottery-backend
-        run: mvn -B -pl lottery-gateway,lottery-user -am package
+        run: mvn -B -pl lottery-gateway,lottery-user,lottery-award,lottery-lottery,lottery-ai -am package
 
       - name: Set up Node.js
         uses: actions/setup-node@v4
@@ -53,6 +53,9 @@ jobs:
           set -euo pipefail
           GATEWAY_IMAGE=lottery-platform/gateway:latest
           USER_IMAGE=lottery-platform/user:latest
+          AWARD_IMAGE=lottery-platform/award:latest
+          LOTTERY_IMAGE=lottery-platform/lottery:latest
+          AI_IMAGE=lottery-platform/ai:latest
           NGINX_IMAGE=nginx:1.29-alpine
           POSTGRES_IMAGE=postgres:17-alpine
           REDIS_IMAGE=redis:7-alpine
@@ -60,6 +63,9 @@ jobs:
           mkdir -p release/artifacts/backend release/artifacts/frontend release/artifacts/images
           cp lottery-backend/lottery-gateway/target/lottery-gateway-*.jar release/artifacts/backend/lottery-gateway.jar
           cp lottery-backend/lottery-user/target/lottery-user-*.jar release/artifacts/backend/lottery-user.jar
+          cp lottery-backend/lottery-award/target/lottery-award-*.jar release/artifacts/backend/lottery-award.jar
+          cp lottery-backend/lottery-lottery/target/lottery-lottery-*.jar release/artifacts/backend/lottery-lottery.jar
+          cp lottery-backend/lottery-ai/target/lottery-ai-*.jar release/artifacts/backend/lottery-ai.jar
           cp -R lottery-frontend/dist release/artifacts/frontend/dist
           docker pull "$NGINX_IMAGE"
           docker pull "$POSTGRES_IMAGE"
@@ -68,8 +74,17 @@ jobs:
             --build-arg JAR_FILE=release/artifacts/backend/lottery-gateway.jar .
           docker build -t "$USER_IMAGE" -f deploy/prod/docker/java-service.Dockerfile \
             --build-arg JAR_FILE=release/artifacts/backend/lottery-user.jar .
+          docker build -t "$AWARD_IMAGE" -f deploy/prod/docker/java-service.Dockerfile \
+            --build-arg JAR_FILE=release/artifacts/backend/lottery-award.jar .
+          docker build -t "$LOTTERY_IMAGE" -f deploy/prod/docker/java-service.Dockerfile \
+            --build-arg JAR_FILE=release/artifacts/backend/lottery-lottery.jar .
+          docker build -t "$AI_IMAGE" -f deploy/prod/docker/java-service.Dockerfile \
+            --build-arg JAR_FILE=release/artifacts/backend/lottery-ai.jar .
           docker save "$GATEWAY_IMAGE" | gzip -c > release/artifacts/images/gateway-latest.tar.gz
           docker save "$USER_IMAGE" | gzip -c > release/artifacts/images/user-latest.tar.gz
+          docker save "$AWARD_IMAGE" | gzip -c > release/artifacts/images/award-latest.tar.gz
+          docker save "$LOTTERY_IMAGE" | gzip -c > release/artifacts/images/lottery-latest.tar.gz
+          docker save "$AI_IMAGE" | gzip -c > release/artifacts/images/ai-latest.tar.gz
           docker save "$NGINX_IMAGE" | gzip -c > release/artifacts/images/nginx-1.29-alpine.tar.gz
           docker save "$POSTGRES_IMAGE" | gzip -c > release/artifacts/images/postgres-17-alpine.tar.gz
           docker save "$REDIS_IMAGE" | gzip -c > release/artifacts/images/redis-7-alpine.tar.gz
