@@ -15,6 +15,7 @@ description: Use when the user asks to commit, push, create a PR, start a new fe
 
 ```bash
 gh --version
+gh auth status
 ```
 
 如果 `gh` 不可用，提示用户安装：
@@ -30,6 +31,8 @@ gh --version
 
 安装后执行 gh auth login 登录 GitHub 账号即可使用。
 ```
+
+如果 `gh auth status` 显示未登录、token 无效或认证失败，立即停止提交、推送和 PR 流程，提示用户执行 `gh auth login -h github.com` 后重试。
 
 ## 规则
 
@@ -52,6 +55,7 @@ gh --version
 - [ ] 已执行 `git pull origin main` 拉取最新代码
 - [ ] 当前在 main 分支上（或确认无未提交修改后切回 main）
 - [ ] `gh --version` 可用（如需创建 PR）
+- [ ] `gh auth status` 已登录且 token 有效；失败时停止提交、推送和 PR 流程
 
 ### 分支与提交
 - [ ] 分支名符合 `{AI}/{YYYYMMDD}_{简述}` 格式
@@ -104,6 +108,7 @@ git checkout main && git pull origin main
 ```bash
 # 0. 前置检查
 gh --version  # 若不可用 → 提示安装
+gh auth status  # 若未登录或 token 无效 → 提示 gh auth login
 
 # 1. 同步最新
 git checkout main && git pull origin main
@@ -277,6 +282,7 @@ Co-authored-by: Claude <noreply@anthropic.com>"
 ```bash
 # 前置检查
 gh --version             # 确认 gh CLI 可用
+gh auth status           # 确认已登录且 token 有效
 
 # 查看当前分支
 git branch --show-current
