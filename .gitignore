@@ -44,12 +44,29 @@ deploy/docker/.env
 # 不包含业务代码，无需纳入版本控制。
 # 如新增同类工具，请继续追加到此区块。
 # ========================================
-.codegraph/          # CodeGraph MCP 代码索引
-.headroom/           # Headroom MCP 压缩缓存
-.claude/worktrees/   # Claude Code 工作树隔离目录
-.claude/scheduled_tasks.json  # Claude Code 定时任务持久化
-.claude/plans/       # Claude Code Plan 模式输出
-.claude/settings.local.json    # Claude Code 本地设置覆盖（用户专属，不可提交）
-.codex/              # Codex CLI 运行时文件
-.cursor/             # Cursor IDE 运行时文件（预覆盖）
-node_modules/        # Node.js 依赖（根目录兜底）
+# CodeGraph MCP 代码索引
+.codegraph/
+
+# Headroom MCP 压缩缓存
+.headroom/
+
+# Claude Code 工作树隔离目录
+.claude/worktrees/
+
+# Claude Code 定时任务持久化
+.claude/scheduled_tasks.json
+
+# Claude Code Plan 模式输出
+.claude/plans/
+
+# Claude Code 本地设置覆盖（用户专属，不可提交）
+.claude/settings.local.json
+
+# Codex CLI 运行时文件
+.codex/
+
+# Cursor IDE 运行时文件（预覆盖）
+.cursor/
+
+# Node.js 依赖（根目录兜底）
+node_modules/
