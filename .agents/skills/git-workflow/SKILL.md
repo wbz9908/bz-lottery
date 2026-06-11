@@ -101,6 +101,38 @@ Co-authored-by: Codex <noreply@openai.com>
 
 只有其他 AI 工具实际参与同一个提交时，才追加对应协作署名。
 
+## Co-authored-by 署名
+
+`Co-authored-by` 是 AI 协作提交的必填尾行。只要 Codex 实际参与实现、文档编写、问题排查、提交操作或 PR 创建，提交信息末尾必须包含：
+
+```text
+Co-authored-by: Codex <noreply@openai.com>
+```
+
+规则：
+
+1. 署名必须放在提交正文末尾，前面保留一个空行。
+2. 一个提交可以包含多行 `Co-authored-by`，但只能添加实际参与该提交的工具或人员。
+3. 不要为了展示效果给未参与的 AI 工具追加署名。
+4. 如果提交完全由用户手动完成、Codex 只提供口头建议且未参与改动或提交操作，可以不添加 Codex 署名。
+
+常用 AI 署名：
+
+| AI 工具 | 署名行 |
+| --- | --- |
+| Codex | `Co-authored-by: Codex <noreply@openai.com>` |
+| Claude / Claude Code | `Co-authored-by: Claude <noreply@anthropic.com>` |
+| Cursor | `Co-authored-by: Cursor <noreply@cursor.com>` |
+| GitHub Copilot | `Co-authored-by: GitHub Copilot <copilot@github.com>` |
+
+示例：
+
+```text
+docs(git): harden codex workflow
+
+Co-authored-by: Codex <noreply@openai.com>
+```
+
 ## PR 正文
 
 PR 描述应包含：
