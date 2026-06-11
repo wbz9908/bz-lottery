@@ -1,6 +1,6 @@
 # .agents — Codex 技能
 
-本目录存放 bz-lottery 项目的 Codex 技能。根目录 `AGENTS.md` 负责选择技能；每个技能负责定义触发场景、工作流、验证要求和引用文档。
+本目录存放 bz-lottery 项目的 Codex 技能。技能按“工作流/能力”组织，而不是按前端、后端、部署目录组织。
 
 ## 目录结构
 
@@ -8,15 +8,12 @@
 .agents/
 ├── README.md
 └── skills/
-    ├── backend/
-    │   ├── SKILL.md
-    │   └── references/
-    ├── frontend/
-    │   ├── SKILL.md
-    │   └── references/
-    ├── deploy/
-    │   ├── SKILL.md
-    │   └── references/
+    ├── technical-clarification/
+    │   └── SKILL.md
+    ├── development-pipeline/
+    │   └── SKILL.md
+    ├── code-review/
+    │   └── SKILL.md
     └── git-workflow/
         └── SKILL.md
 ```
@@ -25,26 +22,17 @@
 
 | 技能 | 用途 |
 | --- | --- |
-| `backend` | 后端 Java/Spring Boot 微服务开发、接口、业务规则、数据库变更 |
-| `frontend` | Vue 3 + TypeScript 前端开发、接口对接、页面和状态管理 |
-| `deploy` | Docker Compose、Nginx、环境脚本、端口与部署配置 |
+| `technical-clarification` | 需求不清或改动较大时，先产出技术澄清文档 |
+| `development-pipeline` | 根据明确需求执行开发、验证和必要修正 |
+| `code-review` | 对当前 diff 或待提交改动做代码审查 |
 | `git-workflow` | 分支、提交、推送、PR、`.gitignore` 检查 |
 
 ## 维护规则
 
-1. 每个技能必须使用 Codex Skill 标准结构：`SKILL.md` + 可选 `references/`。
+1. 每个技能必须使用 Codex Skill 标准结构：`SKILL.md` + 可选 `references/`、`scripts/`、`assets/`。
 2. `SKILL.md` 必须包含 YAML frontmatter，至少提供 `name` 和 `description`。
-3. 领域规范放在对应技能的 `references/` 目录内，避免散落在项目子目录。
-4. 新增或修改引用文档时，同步更新对应技能的引用列表。
-5. 所有文档使用 UTF-8 无 BOM 编码，换行符使用 LF。
-6. 不在 `lottery-backend/`、`lottery-frontend/`、`deploy/` 下维护重复的 `.agents/`。
-
-## 引用文档模板
-
-```yaml
----
-category: <architecture|business|api|code|data|infrastructure>
-version: "1.0.0"
-last_updated: "YYYY-MM-DD"
----
-```
+3. `description` 要写清楚触发场景，避免过宽导致无关任务误触发。
+4. 技能正文描述工作流、输入、输出、验证和风险处理。
+5. 长篇规范、模板或检查表可放到技能自己的 `references/` 目录。
+6. 所有文档使用 UTF-8 无 BOM 编码，换行符使用 LF。
+7. 不在 `lottery-backend/`、`lottery-frontend/`、`deploy/` 下维护重复的 `.agents/`。
