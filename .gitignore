@@ -31,7 +31,6 @@ replay_pid*
 *.swo
 .DS_Store
 .deepseek
-.codex
 
 # Deploy environment files
 deploy/env/.env
@@ -39,3 +38,18 @@ deploy/prod/env/prod.env
 deploy/prod/storage/*
 !/deploy/prod/storage/.gitkeep
 deploy/docker/.env
+
+# === AI & Tooling (auto-maintained) ===
+# 以下目录/文件由 AI 工具、MCP 服务、Claude Code Skills 产生，
+# 不包含业务代码，无需纳入版本控制。
+# 如新增同类工具，请继续追加到此区块。
+# ========================================
+.codegraph/          # CodeGraph MCP 代码索引
+.headroom/           # Headroom MCP 压缩缓存
+.claude/worktrees/   # Claude Code 工作树隔离目录
+.claude/scheduled_tasks.json  # Claude Code 定时任务持久化
+.claude/plans/       # Claude Code Plan 模式输出
+.claude/settings.local.json    # Claude Code 本地设置覆盖（用户专属，不可提交）
+.codex/              # Codex CLI 运行时文件
+.cursor/             # Cursor IDE 运行时文件（预覆盖）
+node_modules/        # Node.js 依赖（根目录兜底）
